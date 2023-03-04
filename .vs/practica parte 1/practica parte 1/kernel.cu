@@ -30,73 +30,123 @@ __global__ void kernelGenerarTablero(int* dev_tablero, int dev_semilla, int difi
     dev_tablero[pos] = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
 }
 
-__global__ void kernelEncontrarCamino(int* dev_tablero, int** camino_final, int tamFila, int tamCol, int cX, int cY)
+__global__ void kernelEncontrarCamino(int* dev_tablero, int** camino_final, int *dev_index, int tamFila, int tamCol, int cX, int cY)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;        //Posicion en la que nos encontramos
-    int pos_encontrar = cX * tamFila + cY;                  //Posicion a ENCONTRAR en el vector 1D
+    int pos_encontrar = cX  * tamCol + cY;                  //Posicion a ENCONTRAR en el vector 1D
+
     bool encontrado = false;
     bool camino_invalido = false;
-    int* posibleCamino;                                    //Guarda el posible camino para cada posicion
+    int* posibleCamino = new int[tamFila * tamCol];                                    //Guarda el posible camino para cada posicion
+    
     __shared__ int** s_camino_final;                       //Lista de caminos finales que encuentran la posicion buscada
     __shared__ int num_camino;
-    int posAux = pos + 1;
+
+    int new_index = dev_index[0];
+
+    int posAux = pos + 1;   //Guarda siguiente posicion a la actual
     int index = 0;
-    //Recorrer 1º fila y 2ºColumna del tablero en la que se encuentra la celda de POS
+
+    //Guarda fila y Columna del tablero en la que se encuentra la celda de siguiente
     int fila = posAux / tamCol;
     int col = posAux - fila * tamCol;
+
+    int posSigFila = (cX + 1) * tamFila + cY;    //Guarda la posicion de la casilla de la siguiente fila misma columna que la actual
+
+    //lleva a cabo primera inciializacion de las variables compartidas
+    if (threadIdx.x == 0)
+    {
+        s_camino_final = new int* [tamFila * tamCol];
+        num_camino = 0;
+    }
+
+    __syncthreads();
+
+    printf("\n POSICION A ENCONTRAR %d\n", pos_encontrar);
+    printf("\n posicion siguiente fila %d\n", posSigFila);
+
+    //Si la ficha de la posiciona ctual es igual al color de la que tenemos que encontrar
     if (dev_tablero[pos] == dev_tablero[pos_encontrar])
     {
-
-        while ((posAux % tamCol > 0) || (col < tamCol) && (pos < (int)FILAS * (int)COLUMNAS) && !encontrado && !camino_invalido)
+        //Recorremos el tablero buscando la ficha indicada controlando que no nos salgamos de los limites del tablero, ni de la fila y columna actual
+        while ((posAux % tamCol != 0) && (col < tamCol) && (pos < tamFila * tamCol) && !encontrado && !camino_invalido)
         {
-            fila = posAux / tamCol;
-            col = posAux - fila * tamCol;
-            printf("\n FILA %d\n", fila);
-            printf("\n COLUMNA %d\n", col);
 
-            //Si son del mismo color
-            if (dev_tablero[pos] == dev_tablero[posAux])
+            printf("\n posicion siguiente fila %d\n", posSigFila);
+            printf("POSICION ACTUAL %d \n ", posAux);
+
+            //Si casilla actual es la que buscamos terminamos al haber encontrado el camino
+            if (posAux == pos_encontrar)
+            {
+                encontrado = true;
+                printf("\nCamino encontrado \n");
+                printf("INDICE %d \n ", index);
+                for (int i = 0; i < index; i++)
+                {
+                    printf("HOLLAAAA");
+                    s_camino_final[new_index][i] = posibleCamino[i];
+                    new_index = atomicAdd(&dev_index[0], 1);
+                    printf("AAAAAAAA %d \n ", new_index);
+                    printf("%d ", posibleCamino[i]);
+                }
+                printf("\n");
+                __syncthreads();
+            }
+            
+            //Si la casilla de la misma fila siguiente columnas es del mismo color
+            else if (dev_tablero[pos] == dev_tablero[posAux])
             {
                 posibleCamino[index] = posAux;
                 posAux += 1;
                 index += 1;
+                printf("INDICE %d \n ", index);
                 printf("\nContinua por posicion (fila) %d\n", posAux);
 
             }
-            else if (dev_tablero[pos] == dev_tablero[fila * tamFila + col])
+            //Si la casilla de la misma columna siguiente fila es del mismo color
+            else if (dev_tablero[pos] == dev_tablero[posSigFila])
             {
-                posibleCamino[index] = fila * tamFila + col;
-                posAux = fila * tamFila + col + 1;
+                posibleCamino[index] = posSigFila;
                 index += 1;
-                printf("\nContinua por posicion (columna)  %d\n", fila * tamFila + col);
+                printf("\nContinua por posicion (columna)  %d\n", posSigFila);
+                if (posSigFila + 1 % tamCol > 0 && (posSigFila - fila) * tamCol < tamCol)    //Si no se cambia de fila ni se sale d e rando al pasar a siguiente posicion 
+                {
+                    posAux = posSigFila + 1;
+                    
+                }
+                else //Si no se mueve hacia bajo en la misma columna
+                {
+                    posAux = fila * tamCol + col - 1;
+                }
+                printf("INDICE %d \n ", index); 
             }
+
             else
             {
                 printf("\nCamino no encontrado desde la posicion %d\n", pos);
                 camino_invalido = true;
             }
+            fila = posAux / tamCol;
+            col = posAux - fila * tamCol;
+            posSigFila = (fila + 1) * tamFila + col;    //Se mueve hacia la derecha en misma fila
+            /*
 
-            if (pos == pos_encontrar)
+            //Revisa casilla de fila anterior misma columna?
+            else if(dev_tablero[pos] == dev_tablero[(fila - 1) * tamCol + col])
             {
-                s_camino_final[num_camino] = posibleCamino;
-                encontrado = true;
-                atomicAdd(&num_camino, 1);
-                printf("\nCamino encontrado \n");
-                for(int i = 0; i < sizeof(posibleCamino)/sizeof(posibleCamino[0]); i++)
-                {
-                    printf("%d ", posibleCamino[i]);
-                }
-                printf("\n");
-            }
-            __syncthreads();
+                posibleCamino[index] = (fila - 1) * tamCol + col;
+                posAux = (fila - 1) * tamCol + col;
+                index += 1;
+            }*/
+            
         }
-
-        camino_final = s_camino_final;
     }
     else
     {
         printf("\nEl color no coincide %d\n", pos);
     }
+
+    camino_final = s_camino_final;
 
 }
 
@@ -141,23 +191,28 @@ int* inicializarTablero(int* h_tablero, int size, int dificultad)
 void encontrarCamino(int* h_tablero, int numFilas, int numColumnas, int coordX, int coordY)
 {
     int** h_caminos;
+    int* h_index;
     int* (dev_Tablero);
+    int* (dev_index);
     int** (dev_caminos);
     int size = numFilas * numColumnas;
 
     h_caminos = (int**)malloc(numFilas * numColumnas * sizeof(int));
+    h_index = (int*)malloc(numFilas * numColumnas * sizeof(int));
 
     //Reservar espacio en memoria para GPU (2 matrices y matriz resultado)
     cudaMalloc((void**)&dev_Tablero, size * sizeof(int));
     cudaMalloc((void**)&dev_caminos, size * sizeof(int));
+    cudaMalloc((void**)&dev_index, size * sizeof(int));
 
     //Copiamos datos a la GPU 
     cudaMemcpy(dev_Tablero, h_tablero, size * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(dev_caminos, h_caminos, size * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_index, h_index, sizeof(int), cudaMemcpyHostToDevice);
 
     dim3 threadsInBlock(size);
 
-    kernelEncontrarCamino << <1, threadsInBlock >> > (dev_Tablero, dev_caminos, numFilas, numColumnas, coordX, coordY);
+    kernelEncontrarCamino << <1, threadsInBlock >> > (dev_Tablero, dev_caminos, dev_index, numFilas, numColumnas, coordX, coordY);
 
     // Copiamos de la GPU a la CPU
     cudaMemcpy(h_caminos, dev_caminos, size * sizeof(int), cudaMemcpyDeviceToHost);

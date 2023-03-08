@@ -21,134 +21,8 @@
 __constant__ int* FILAS;
 __constant__ int* COLUMNAS;
 
-//Kernel que lleva a cabo la generacion del tablero de forma aleatoria
-__global__ void kernelGenerarTablero(int* dev_tablero, int dev_semilla, int dificultad)
-{
-    int pos = blockIdx.x * blockDim.x + threadIdx.x;
-    curandState_t state;
-    curand_init(dev_semilla, pos, 0, &state); //curand_init(semilla, secuencia, offset, estado) secuencia dgenera diferentes secuencias de numeros aleatorio a partir de la misma semilla y offset genera numeros aleatorio s a partir de una secuencia y una semilla  CurandState curandState;
-    dev_tablero[pos] = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
-}
-
-__global__ void kernelEncontrarCamino(int* dev_tablero, int** camino_final, int *dev_index, int tamFila, int tamCol, int cX, int cY)
-{
-    int pos = blockIdx.x * blockDim.x + threadIdx.x;        //Posicion en la que nos encontramos
-    int pos_encontrar = cX  * tamCol + cY;                  //Posicion a ENCONTRAR en el vector 1D
-
-    bool encontrado = false;
-    bool camino_invalido = false;
-    int* posibleCamino = new int[tamFila * tamCol];                                    //Guarda el posible camino para cada posicion
-    
-    __shared__ int** s_camino_final;                       //Lista de caminos finales que encuentran la posicion buscada
-    __shared__ int num_camino;
-
-    int new_index = dev_index[0];
-
-    int posAux = pos + 1;   //Guarda siguiente posicion a la actual
-    int index = 0;
-
-    //Guarda fila y Columna del tablero en la que se encuentra la celda de siguiente
-    int fila = posAux / tamCol;
-    int col = posAux - fila * tamCol;
-
-    int posSigFila = (cX + 1) * tamFila + cY;    //Guarda la posicion de la casilla de la siguiente fila misma columna que la actual
-
-    //lleva a cabo primera inciializacion de las variables compartidas
-    if (threadIdx.x == 0)
-    {
-        s_camino_final = new int* [tamFila * tamCol];
-        num_camino = 0;
-    }
-
-    __syncthreads();
-
-    printf("\n POSICION A ENCONTRAR %d\n", pos_encontrar);
-    printf("\n posicion siguiente fila %d\n", posSigFila);
-
-    //Si la ficha de la posiciona ctual es igual al color de la que tenemos que encontrar
-    if (dev_tablero[pos] == dev_tablero[pos_encontrar])
-    {
-        //Recorremos el tablero buscando la ficha indicada controlando que no nos salgamos de los limites del tablero, ni de la fila y columna actual
-        while ((posAux % tamCol != 0) && (col < tamCol) && (pos < tamFila * tamCol) && !encontrado && !camino_invalido)
-        {
-
-            printf("\n posicion siguiente fila %d\n", posSigFila);
-            printf("POSICION ACTUAL %d \n ", posAux);
-
-            //Si casilla actual es la que buscamos terminamos al haber encontrado el camino
-            if (posAux == pos_encontrar)
-            {
-                encontrado = true;
-                printf("\nCamino encontrado \n");
-                printf("INDICE %d \n ", index);
-                for (int i = 0; i < index; i++)
-                {
-                    printf("HOLLAAAA");
-                    s_camino_final[new_index][i] = posibleCamino[i];
-                    new_index = atomicAdd(&dev_index[0], 1);
-                    printf("AAAAAAAA %d \n ", new_index);
-                    printf("%d ", posibleCamino[i]);
-                }
-                printf("\n");
-                __syncthreads();
-            }
-            
-            //Si la casilla de la misma fila siguiente columnas es del mismo color
-            else if (dev_tablero[pos] == dev_tablero[posAux])
-            {
-                posibleCamino[index] = posAux;
-                posAux += 1;
-                index += 1;
-                printf("INDICE %d \n ", index);
-                printf("\nContinua por posicion (fila) %d\n", posAux);
-
-            }
-            //Si la casilla de la misma columna siguiente fila es del mismo color
-            else if (dev_tablero[pos] == dev_tablero[posSigFila])
-            {
-                posibleCamino[index] = posSigFila;
-                index += 1;
-                printf("\nContinua por posicion (columna)  %d\n", posSigFila);
-                if (posSigFila + 1 % tamCol > 0 && (posSigFila - fila) * tamCol < tamCol)    //Si no se cambia de fila ni se sale d e rando al pasar a siguiente posicion 
-                {
-                    posAux = posSigFila + 1;
-                    
-                }
-                else //Si no se mueve hacia bajo en la misma columna
-                {
-                    posAux = fila * tamCol + col - 1;
-                }
-                printf("INDICE %d \n ", index); 
-            }
-
-            else
-            {
-                printf("\nCamino no encontrado desde la posicion %d\n", pos);
-                camino_invalido = true;
-            }
-            fila = posAux / tamCol;
-            col = posAux - fila * tamCol;
-            posSigFila = (fila + 1) * tamFila + col;    //Se mueve hacia la derecha en misma fila
-            /*
-
-            //Revisa casilla de fila anterior misma columna?
-            else if(dev_tablero[pos] == dev_tablero[(fila - 1) * tamCol + col])
-            {
-                posibleCamino[index] = (fila - 1) * tamCol + col;
-                posAux = (fila - 1) * tamCol + col;
-                index += 1;
-            }*/
-            
-        }
-    }
-    else
-    {
-        printf("\nEl color no coincide %d\n", pos);
-    }
-
-    camino_final = s_camino_final;
-
-}
+__device__ int** caminos = {};
+__device__ int indice = 0;
 
 //Funcion que muestra el tablero por consola
 void mostrarTablero(int* tablero, int numFilas, int numColumnas)
@@ -163,6 +37,349 @@ void mostrarTablero(int* tablero, int numFilas, int numColumnas)
     }
     printf("\n");
 }
+
+
+//Kernel que lleva a cabo la generacion del tablero de forma aleatoria
+__global__ void kernelGenerarTablero(int* dev_tablero, int dev_semilla, int dificultad)
+{
+    int pos = blockIdx.x * blockDim.x + threadIdx.x;
+    curandState_t state;
+    curand_init(dev_semilla, pos, 0, &state); //curand_init(semilla, secuencia, offset, estado) secuencia dgenera diferentes secuencias de numeros aleatorio a partir de la misma semilla y offset genera numeros aleatorio s a partir de una secuencia y una semilla  CurandState curandState;
+    dev_tablero[pos] = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
+}
+
+
+__device__ bool backtrackingA(int* dev_tablero, int** dev_caminos, int* dev_camino, int numFila, int numCol, int* dev_index, int index, int pos_encontrar, bool encontrado, int posAux, int filaActual, int colActual, int ultima_posicion, int pos, bool camino_invalido, int num_camino)
+{
+    if (dev_tablero[pos] == dev_tablero[pos_encontrar])
+    {
+        posAux = pos;
+        printf("\nHilo numero %d - posicion auxiliar inicial %d \n", pos, posAux);
+
+        if ((posAux < numCol * numFila) && !encontrado && !camino_invalido)
+        {
+            int sigfila = (posAux + 1) / numCol;                 //Fila en la que se encuentra el siguiente elemento
+            int sigcol = (posAux + 1) - sigfila * numCol;       //Columna en la que se encuentra el siguiente elemento
+
+            int fila_anterior = (posAux - 1) / numCol;                 //Fila en la que se encuentra el elemento ANTERIOR
+            int col_anterior = (posAux - 1) - fila_anterior * numCol; //Columna en la que se encuentra el elemento anterior
+
+
+            colActual = sigcol - 1;                     //Columna de la posicion actual
+            int posSigFila = (posAux + numCol) / numCol;
+
+            /*for (int i = 0; i < numFila; i++)
+            {
+                for (int j = 0; j < numCol; j++)
+                {
+                    printf("%d  ", dev_tablero[i * numFila + j]);
+                }
+                printf("\n");
+            }
+            printf("\n");*/
+
+            // printf("\n DERECHA- fila [%d] col [%d] hilo %d\n", sigfila, sigcol, pos);
+            // printf("\n ABAJO - fila[%d] col[%d] (hilo %d)\n", posSigFila, colActual, pos);
+            //printf("\n IZQUIEDA - fila[%d] col[%d] posicion %d (hilo %d) ultima pos %d\n", posSigFila, col_anterior, posAux - 1, pos, ultima_posicion);
+            // printf("\n Condicion derecha: hilo %d va la columna %d (desde posAux %d )\n", pos, posAux+1, posAux);
+            // printf("\n Condicion abajo: hilo %d desde: posAux %d va a la columna %d\n", pos, posAux, posAux + numCol);
+
+            //Si son del mismo color
+            if (posAux == pos_encontrar)
+            {
+                printf("\nCamino ENCONTRADO %d\n", pos);
+                index += 1;
+                dev_camino[index] = pos_encontrar;
+                num_camino = atomicAdd(&dev_index[0], 1);
+                printf("\nPosible camino num_camino[%d] (hilo %d) de tamano %d\n", num_camino, pos, index);
+
+                __syncthreads(); // Sincronizamos los hilos del bloque para asegurarnos de que se complete la operación atomicAdd
+                dev_caminos[num_camino] = dev_camino;
+                encontrado = true;
+
+                
+                return encontrado;
+            }
+            else
+            {
+
+                if (dev_tablero[pos] == dev_tablero[posAux + 1] && sigcol >= 0 && (posAux + 1) != ultima_posicion)          //Nos desplazamos a la derecha
+                {
+                    printf("\nAvanza a la pos DERECHA [%d] hilo %d", posAux, pos);
+                    dev_camino[index] = posAux;
+                    dev_tablero[posAux] = -1;
+                    ultima_posicion = posAux;
+                    posAux += 1;
+                    index += 1;
+                    printf("\nContinua por posicion (fila) %d hilo %d\n", posAux, pos);
+                    encontrado = backtrackingA(dev_tablero, dev_caminos, dev_camino, numFila, numCol, dev_index, index, pos_encontrar, encontrado, posAux, filaActual, colActual, ultima_posicion, pos, camino_invalido, num_camino);
+
+                    if (encontrado)
+                    {
+                        printf("\nCamino ENCONTRADO %d\n", pos);
+                        index += 1;
+                        dev_camino[index] = pos_encontrar;
+                        num_camino = atomicAdd(&dev_index[0], 1);
+                        printf("\nPosible camino num_camino[%d] (hilo %d) de tamano %d\n", num_camino, pos, index);
+
+                        __syncthreads(); // Sincronizamos los hilos del bloque para asegurarnos de que se complete la operación atomicAdd
+                        dev_caminos[num_camino] = dev_camino;
+                        encontrado = true;
+
+                        return encontrado;
+                    }
+
+                    index--; //Elimina ultimo elemento si no encuentra camino para volver atras
+                }
+                else if (dev_tablero[pos] == dev_tablero[posAux + numCol] && (posAux + numCol) != ultima_posicion && (posAux + numCol) < numCol * numFila)  //Nos desplazamos hacia abajo
+                {
+                    ultima_posicion = posAux;
+                    dev_tablero[posAux] = -1;
+                    printf("\nAvanza a la pos de ABAJO [%d] ultima posicion %d hilo %d", posAux + numCol, ultima_posicion, pos);
+                    dev_camino[index] = posAux;
+                    posAux = posAux + numCol;
+                    //printf("\nPos aux vale: %d hilo %d", posAux, pos);
+                    index += 1;
+
+                    encontrado = backtrackingA(dev_tablero, dev_caminos, dev_camino, numFila, numCol, dev_index, index, pos_encontrar, encontrado, posAux, filaActual, colActual, ultima_posicion, pos, camino_invalido, num_camino);
+
+                    if (encontrado)
+                    {
+                        printf("\nCamino ENCONTRADO %d\n", pos);
+                        index += 1;
+                        dev_camino[index] = pos_encontrar;
+                        num_camino = atomicAdd(&dev_index[0], 1);
+                        printf("\nPosible camino num_camino[%d] (hilo %d) de tamano %d\n", num_camino, pos, index);
+
+                        __syncthreads(); // Sincronizamos los hilos del bloque para asegurarnos de que se complete la operación atomicAdd
+                        dev_caminos[num_camino] = dev_camino;
+                        encontrado = true;
+
+                        return encontrado;
+                    }
+
+                    index--;//Elimina ultimo elemento si no encuentra camino para volver atras
+
+                }
+                else if (dev_tablero[pos] == dev_tablero[posAux - 1] && col_anterior >= 0 && posAux - 1 >= numCol && (posAux - 1) != ultima_posicion)           //Izquierda
+                {
+                    dev_camino[index] = posAux;
+                    ultima_posicion = posAux;
+                    dev_tablero[posAux] = -1;
+                    posAux = posAux - 1;
+                    printf("\nAvanza a la pos IZQUIERDA [%d] hilo %d", posAux, pos);
+                    index += 1;
+
+                    encontrado = backtrackingA(dev_tablero, dev_caminos, dev_camino, numFila, numCol, dev_index, index, pos_encontrar, encontrado, posAux, filaActual, colActual, ultima_posicion, pos, camino_invalido, num_camino);
+
+                    if (encontrado)
+                    {
+                        printf("\nCamino ENCONTRADO %d\n", pos);
+                        index += 1;
+                        dev_camino[index] = pos_encontrar;
+                        num_camino = atomicAdd(&dev_index[0], 1);
+                        printf("\nPosible camino num_camino[%d] (hilo %d) de tamano %d\n", num_camino, pos, index);
+
+                        __syncthreads(); // Sincronizamos los hilos del bloque para asegurarnos de que se complete la operación atomicAdd
+                        dev_caminos[num_camino] = dev_camino;
+                        encontrado = true;
+
+                        return encontrado;
+                    }
+
+                    index--; //Elimina ultimo elemento si no encuentra camino para volver atras
+
+                }
+                else if (dev_tablero[pos] == dev_tablero[posAux - numCol] && (posAux - numCol) != ultima_posicion && posAux >= numCol && (posAux - numCol) >= 0)  //ARRIBA
+                {
+                    //printf("\nAvanza a la pos de ARRIBA [%d] hilo %d", posAux, pos);
+                    dev_camino[index] = posAux;
+                    ultima_posicion = posAux;
+                    dev_tablero[posAux] = -1;
+                    printf("\nAvanza a la pos ARRIBA [%d] ultima posicion %d hilo %d", (posAux - numCol), ultima_posicion, pos);
+                    posAux = posAux - numCol;
+                    index += 1;
+
+                    encontrado = backtrackingA(dev_tablero, dev_caminos, dev_camino, numFila, numCol, dev_index, index, pos_encontrar, encontrado, posAux, filaActual, colActual, ultima_posicion, pos, camino_invalido, num_camino);
+
+                    if (encontrado)
+                    {
+                        printf("\nCamino ENCONTRADO %d\n", pos);
+                        index += 1;
+                        dev_camino[index] = pos_encontrar;
+                        num_camino = atomicAdd(&dev_index[0], 1);
+                        printf("\nPosible camino num_camino[%d] (hilo %d) de tamano %d\n", num_camino, pos, index);
+
+                        __syncthreads(); // Sincronizamos los hilos del bloque para asegurarnos de que se complete la operación atomicAdd
+                        dev_caminos[num_camino] = dev_camino;
+                        encontrado = true;
+
+                        return encontrado;
+                    }
+
+                    index--; //Elimina ultimo elemento si no encuentra camino para volver atras
+                }
+                else
+                {
+                    printf("\nCamino no encontrado desde la posicion %d\n", pos);
+                    camino_invalido = true;
+                    dev_tablero[posAux] = dev_tablero[ultima_posicion]; //Vuelve atras
+                }
+
+                
+            }
+
+        }
+    }
+}
+
+
+__global__ void kernelEncontrarCaminosBack(int* dev_tablero, int** dev_caminos, int* dev_camino, int numFila, int numCol, int* dev_index, int cX, int cY)
+{
+    int pos = blockIdx.x * blockDim.x + threadIdx.x;        //Posicion en la que nos encontramos
+    int pos_encontrar = cX * numFila + cY;                  //Posicion a ENCONTRAR en el vector 1D
+
+    //int* dev_camino;
+    int num_camino = dev_index[0];
+
+    bool encontrado = false;
+    bool camino_invalido = false;
+    int posAux;
+    int index = 0;
+
+    //Recorrer 1º fila y 2ºColumna del tablero en la que se encuentra la celda de POS
+    int filaActual = pos / numCol;
+    int colActual = pos - filaActual * numCol;
+    int ultima_posicion = pos;
+
+    if (dev_tablero[pos] == dev_tablero[pos_encontrar])
+    {
+        backtrackingA(dev_tablero, dev_caminos, dev_camino, numFila, numCol, dev_index, index, pos_encontrar, encontrado, posAux, filaActual, colActual, ultima_posicion, pos, camino_invalido, num_camino);
+        __syncthreads();
+    }
+    else
+    {
+        printf("Color no corresponde hilo %d \n", pos);
+    }
+}
+    
+
+    __global__ void kernelEncontrarCaminos(int* dev_tablero, int** dev_caminos, int* dev_camino, int numFila, int numCol, int* dev_index, int cX, int cY)
+    {
+        int pos = blockIdx.x * blockDim.x + threadIdx.x;        //Posicion en la que nos encontramos
+        int pos_encontrar = cX * numFila + cY;                  //Posicion a ENCONTRAR en el vector 1D
+
+        //int* dev_camino;
+        int num_camino = dev_index[0];
+
+        bool encontrado = false;
+        bool camino_invalido = false;
+        int posAux;
+        int index = 0;
+
+        //Recorrer 1º fila y 2ºColumna del tablero en la que se encuentra la celda de POS
+        int filaActual = pos / numCol;
+        int colActual = pos - filaActual * numCol;
+        int ultima_posicion = pos;
+
+        if (dev_tablero[pos] == dev_tablero[pos_encontrar])
+        {
+            posAux = pos;
+            printf("\nHilo numero %d - posicion auxiliar inicial %d \n", pos, posAux);
+
+            while ((posAux < numCol * numFila) && !encontrado && !camino_invalido)
+            {
+                int sigfila = (posAux + 1) / numCol;                 //Fila en la que se encuentra el siguiente elemento
+                int sigcol = (posAux + 1) - sigfila * numCol;       //Columna en la que se encuentra el siguiente elemento
+
+                int fila_anterior = (posAux - 1) / numCol;                 //Fila en la que se encuentra el elemento ANTERIOR
+                int col_anterior = (posAux - 1) - fila_anterior * numCol; //Columna en la que se encuentra el elemento anterior
+
+
+                colActual = sigcol - 1;                     //Columna de la posicion actual
+                int posSigFila = (posAux + numCol) / numCol;
+
+
+
+                // printf("\n DERECHA- fila [%d] col [%d] hilo %d\n", sigfila, sigcol, pos);
+                // printf("\n ABAJO - fila[%d] col[%d] (hilo %d)\n", posSigFila, colActual, pos);
+                //printf("\n IZQUIEDA - fila[%d] col[%d] posicion %d (hilo %d) ultima pos %d\n", posSigFila, col_anterior, posAux - 1, pos, ultima_posicion);
+                // printf("\n Condicion derecha: hilo %d va la columna %d (desde posAux %d )\n", pos, posAux+1, posAux);
+                // printf("\n Condicion abajo: hilo %d desde: posAux %d va a la columna %d\n", pos, posAux, posAux + numCol);
+
+                //Si son del mismo color
+                if (posAux == pos_encontrar)
+                {
+                    printf("\nCamino ENCONTRADO %d\n", pos);
+                    index += 1;
+                    dev_camino[index] = pos_encontrar;
+                    num_camino = atomicAdd(&dev_index[0], 1);
+                    printf("\nPosible camino num_camino[%d] (hilo %d) de tamano %d\n", num_camino, pos, index);
+
+                    __syncthreads(); // Sincronizamos los hilos del bloque para asegurarnos de que se complete la operación atomicAdd
+                    dev_caminos[num_camino] = dev_camino;
+                    encontrado = true;
+                }
+
+                else if (dev_tablero[pos] == dev_tablero[posAux + 1] && sigcol >= 0 && (posAux + 1) != ultima_posicion)          //Nos desplazamos a la derecha
+                {
+                    printf("\nAvanza a la pos DERECHA [%d] hilo %d", posAux, pos);
+                    dev_camino[index] = posAux;
+                    dev_tablero[posAux] = -1;
+                    ultima_posicion = posAux;
+                    posAux += 1;
+                    index += 1;
+                    printf("\nContinua por posicion (fila) %d hilo %d\n", posAux, pos);
+
+                }
+                else if (dev_tablero[pos] == dev_tablero[posAux + numCol] && (posAux + numCol) != ultima_posicion && (posAux + numCol) < numCol * numFila)  //Nos desplazamos hacia abajo
+                {
+                    ultima_posicion = posAux;
+                    dev_tablero[posAux] = -1;
+                    printf("\nAvanza a la pos de ABAJO [%d] ultima posicion %d hilo %d", posAux + numCol, ultima_posicion, pos);
+                    dev_camino[index] = posAux;
+                    posAux = posAux + numCol;
+                    //printf("\nPos aux vale: %d hilo %d", posAux, pos);
+                    index += 1;
+
+                    // printf("\nContinua por posicion (columna)  %d hilo %d\n", posAux, pos);
+
+                }
+                else if (dev_tablero[pos] == dev_tablero[posAux - 1] && col_anterior >= 0 && posAux - 1 >= numCol && (posAux - 1) != ultima_posicion)           //Izquierda
+                {
+                    dev_camino[index] = posAux;
+                    ultima_posicion = posAux;
+                    dev_tablero[posAux] = -1;
+                    posAux = posAux - 1;
+                    printf("\nAvanza a la pos IZQUIERDA [%d] hilo %d", posAux, pos);
+                    index += 1;
+
+                }
+                else if (dev_tablero[pos] == dev_tablero[posAux - numCol] && (posAux - numCol) != ultima_posicion && posAux >= numCol && (posAux - numCol) >= 0)  //ARRIBA
+                {
+                    //printf("\nAvanza a la pos de ARRIBA [%d] hilo %d", posAux, pos);
+                    dev_camino[index] = posAux;
+                    ultima_posicion = posAux;
+                    dev_tablero[posAux] = -1;
+                    printf("\nAvanza a la pos ARRIBA [%d] ultima posicion %d hilo %d", (posAux - numCol), ultima_posicion, pos);
+                    posAux = posAux - numCol;
+                    index += 1;
+                }
+                else
+                {
+                    printf("\nCamino no encontrado desde la posicion %d\n", pos);
+                    camino_invalido = true;
+                }
+
+
+                __syncthreads();
+
+            }
+        
+
+    }
+}
+
 
 //Inicializamos el tablero
 int* inicializarTablero(int* h_tablero, int size, int dificultad)
@@ -191,45 +408,55 @@ int* inicializarTablero(int* h_tablero, int size, int dificultad)
 void encontrarCamino(int* h_tablero, int numFilas, int numColumnas, int coordX, int coordY)
 {
     int** h_caminos;
-    int* h_index;
-    int* (dev_Tablero);
-    int* (dev_index);
-    int** (dev_caminos);
+    int* (dev_Tablero), ** (dev_caminos), * (dev_index), * (dev_camino);
     int size = numFilas * numColumnas;
+    int* camino_posible;
+
+
+    int* h_index = { 0 };
 
     h_caminos = (int**)malloc(numFilas * numColumnas * sizeof(int));
-    h_index = (int*)malloc(numFilas * numColumnas * sizeof(int));
+    cudaMalloc((void**)&camino_posible, size * sizeof(int));
 
     //Reservar espacio en memoria para GPU (2 matrices y matriz resultado)
     cudaMalloc((void**)&dev_Tablero, size * sizeof(int));
     cudaMalloc((void**)&dev_caminos, size * sizeof(int));
-    cudaMalloc((void**)&dev_index, size * sizeof(int));
+    cudaMalloc((void**)&dev_camino, size * sizeof(int));
+    cudaMalloc((void**)&dev_index, sizeof(int));
 
     //Copiamos datos a la GPU 
     cudaMemcpy(dev_Tablero, h_tablero, size * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(dev_caminos, h_caminos, size * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_camino, camino_posible, size * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(dev_index, h_index, sizeof(int), cudaMemcpyHostToDevice);
 
     dim3 threadsInBlock(size);
-
-    kernelEncontrarCamino << <1, threadsInBlock >> > (dev_Tablero, dev_caminos, dev_index, numFilas, numColumnas, coordX, coordY);
+    //kernelEncontrarCaminos << <1, threadsInBlock >> > (dev_Tablero, dev_caminos, dev_camino, numFilas, numColumnas, dev_index, coordX, coordY);
+    kernelEncontrarCaminosBack << <1, threadsInBlock >> > (dev_Tablero, dev_caminos, dev_camino, numFilas, numColumnas, dev_index, coordX, coordY);
 
     // Copiamos de la GPU a la CPU
     cudaMemcpy(h_caminos, dev_caminos, size * sizeof(int), cudaMemcpyDeviceToHost);
+    //cudaMemcpy(h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
+    //printf("H_INDEX: %d", h_index[0]);
 
+    cudaFree(dev_Tablero);
+    cudaFree(dev_caminos);
+    cudaFree(dev_index);
+    cudaFree(dev_camino);
+    cudaFree(camino_posible);
     //Muestra caminoS
-    /*
-    int filas = sizeof(h_caminos) / sizeof(h_caminos[0]);
-    for (int i = 0; i < filas; i++)
+    
+    int filas = sizeof(caminos) / sizeof(caminos[0]);
+    for (int i = 0; i < indice; i++)
     {
         printf("Camino %d :\n", i + 1);
-        int columnas = sizeof(h_caminos[i]) / sizeof(h_caminos[i][0]);
+        int columnas = sizeof(caminos[i]) / sizeof(caminos[i][0]);
         for (int j = 0; j < columnas; j++)
         {
-            printf("%d ", h_caminos[i][j]);
+            printf("%d ", caminos[i][j]);
         }
         printf("/n");
-    }*/
+    }
 
 
 }
@@ -240,7 +467,7 @@ void encontrarCamino(int* h_tablero, int numFilas, int numColumnas, int coordX, 
 void main(int argc, char* argv[])
 {
     //Declaracion variables
-    int* h_tablero;
+    //int* h_tablero;
     int numFilas = 5;
     int numColumnas = 5;
     int coordenadaX;
@@ -254,11 +481,11 @@ void main(int argc, char* argv[])
     cudaMemcpyToSymbol(COLUMNAS, &numColumnas, sizeof(int));
 
     //Reservamos memoria para el tablero, ya que no esta inicializado
-    h_tablero = (int*)malloc(numFilas * numColumnas * sizeof(int));
+   // h_tablero = (int*)malloc(numFilas * numColumnas * sizeof(int));
 
     //Llamamos a la funcion que inicializa con valores aleatorios el tablero
-    h_tablero = inicializarTablero(h_tablero, size, dificultad);
-
+    //h_tablero = inicializarTablero(h_tablero, size, dificultad);
+    int h_tablero[25] = { 3,3,3,3,4,3,3,4,3,1,4,3,4,3,1,3,1,3,3,3,4,1,1,4,3 };
     //Mostramos el tablero
     mostrarTablero(h_tablero, numFilas, numColumnas);
 

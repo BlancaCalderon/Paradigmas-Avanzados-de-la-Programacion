@@ -62,10 +62,10 @@ __global__ void kernelGenerarTablero(int* dev_tablero, int dev_semilla, int difi
 
         if (dev_tablero[pos] == color || dev_tablero[pos] == -1 && pos_encontrar == pos)
         {
-            printf("POS A ENCONTRAR %d \n", pos_encontrar);
+          //  printf("POS A ENCONTRAR %d \n", pos_encontrar);
             encontrado = false;
             posAux = pos;
-            printf("\nHilo numero %d - posicion auxiliar inicial %d \n", pos, posAux);
+         //   printf("\nHilo numero %d - posicion auxiliar inicial %d \n", pos, posAux);
 
             while ((posAux < numCol * numFila) && !encontrado && !camino_invalido)
             {
@@ -80,8 +80,8 @@ __global__ void kernelGenerarTablero(int* dev_tablero, int dev_semilla, int difi
                 int col_actual = posAux - fila_actual * numCol;
 
                 // printf("\n DERECHA- fila [%d] col [%d] hilo %d\n", sigfila, sigcol, pos);
-                 printf("\n ABAJO - fila[%d] col[%d] (hilo %d)\n", posSigFila, col_actual, pos);
-                 printf("\n IZQUIEDA - fila[%d] col[%d] posicion %d (hilo %d) posicion ACTUAL %d\n", fila_actual, col_anterior, posAux - 1, pos, posAux);
+                // printf("\n ABAJO - fila[%d] col[%d] (hilo %d)\n", posSigFila, col_actual, pos);
+                // printf("\n IZQUIEDA - fila[%d] col[%d] posicion %d (hilo %d) posicion ACTUAL %d\n", fila_actual, col_anterior, posAux - 1, pos, posAux);
                 // printf("\n Condicion derecha: hilo %d va la columna %d (desde posAux %d )\n", pos, posAux+1, posAux);
                 // printf("\n Condicion abajo: hilo %d desde: posAux %d va a la columna %d\n", pos, posAux, posAux + numCol);
 
@@ -89,10 +89,6 @@ __global__ void kernelGenerarTablero(int* dev_tablero, int dev_semilla, int difi
                 {
                     
                     printf("\nAvanza a la pos DERECHA [%d] hilo %d", posAux, pos);
-                    if (posAux != pos_encontrar) {
-                        dev_camino[dev_index[0]] = posAux;
-                        atomicAdd(&dev_index[0], 1);
-                    }
                     index += 1;
                     ultima_posicion = posAux;
                     posAux += 1;
@@ -104,10 +100,6 @@ __global__ void kernelGenerarTablero(int* dev_tablero, int dev_semilla, int difi
                 {
                     ultima_posicion = posAux;
                     printf("\nAvanza a la pos de ABAJO [%d] ultima posicion %d hilo %d", posAux + numCol, ultima_posicion, pos);
-                    if (posAux != pos_encontrar) {
-                        dev_camino[dev_index[0]] = posAux;
-                        atomicAdd(&dev_index[0], 1);
-                    }
                     posAux = posAux + numCol;
                     index += 1;
                    
@@ -115,11 +107,6 @@ __global__ void kernelGenerarTablero(int* dev_tablero, int dev_semilla, int difi
                 }
                 else if (color == dev_tablero[posAux - 1] && col_anterior >= 0 && (posAux - 1) != ultima_posicion)           //Izquierda
                 {
-                    if (posAux != pos_encontrar) {
-                        dev_camino[dev_index[0]] = posAux;
-                        atomicAdd(&dev_index[0], 1);
-                        
-                    }
                     index += 1;
                     ultima_posicion = posAux;
                     posAux = posAux - 1;
@@ -130,11 +117,13 @@ __global__ void kernelGenerarTablero(int* dev_tablero, int dev_semilla, int difi
                 else if (color == dev_tablero[posAux - numCol] && (posAux - numCol) != ultima_posicion && (posAux - numCol) >= 0 && filaActual >= 0 && filaActual <= numFila)  //ARRIBA
                 {
                     //printf("\nAvanza a la pos de ARRIBA [%d] hilo %d", posAux, pos);
-                    if (posAux != pos_encontrar) {
+                    /*
+                    if (posAux != pos) {
                         dev_camino[dev_index[0]] = posAux;
                         atomicAdd(&dev_index[0], 1);
                         
                     }
+                    */
                     index += 1;
                     ultima_posicion = posAux;
                     printf("\nAvanza a la pos ARRIBA [%d] ultima posicion %d hilo %d", (posAux - numCol), ultima_posicion, pos);
@@ -144,15 +133,19 @@ __global__ void kernelGenerarTablero(int* dev_tablero, int dev_semilla, int difi
                 }
                 else
                 {
-                        dev_camino[dev_index[0]] = posAux;
+                    printf("\nNumero elementos %d\n", dev_index[0]);
+                    
                         printf("\nCamino ENCONTRADO %d\n", pos);
+                        //dev_camino[dev_index[0]]
                         if (index > 0) {
+                            dev_camino[dev_index[0]] = pos;
+                            atomicAdd(&dev_index[0], 1);
                             encontrado = true;
                         }
                         else {
                             encontrado = false;
                         }
-
+                        __syncthreads();
                         for (int i = 0; i < dev_index[0]; i++)
                         {
                             printf(" Camino %d   ", dev_camino[i]);
@@ -169,6 +162,7 @@ __global__ void kernelGenerarTablero(int* dev_tablero, int dev_semilla, int difi
             printf("DEV_INDEX %d \n", dev_index[0]);
             
         }
+        __syncthreads();
         
     
 }
@@ -221,20 +215,20 @@ int* inicializarTablero(int* h_tablero, int size, int dificultad)
 }
 
 //Funcion que llama a kernel para encontrar todos los caminos hacia bloque indicado
-void encontrarCamino(int* h_tablero, int numFilas, int numColumnas, int coordX, int coordY)
-{
+void encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int coordX, int coordY)
+{   
+    int* h_tablero = h_tablero_original;
     int* h_caminos;
     int* (dev_Tablero), * (dev_index), * (dev_camino);
     bool* dev_encontrado;
     int size = numFilas * numColumnas;
-    int* camino_posible;
     bool h_encontrado = true;
     int* h_index = { 0 };
     int pos_encontrar = coordX * numFilas + coordY;   //Posicion a ENCONTRAR en el vector 1D
     int color = h_tablero[pos_encontrar];
-    h_caminos = (int*)malloc(numFilas * numColumnas * sizeof(int));
+    h_caminos = (int*)malloc(size * sizeof(int));
     //h_index = (int*)malloc(sizeof(int));
-    cudaMalloc((void**)&camino_posible, size * sizeof(int));
+    //cudaMalloc((void**)&h_caminos, size * sizeof(int));
 
     //Reservar espacio en memoria para GPU (2 matrices y matriz resultado)
     cudaMalloc((void**)&dev_Tablero, size * sizeof(int));
@@ -244,7 +238,7 @@ void encontrarCamino(int* h_tablero, int numFilas, int numColumnas, int coordX, 
 
     //Copiamos datos a la GPU 
     cudaMemcpy(dev_Tablero, h_tablero, size * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_camino, camino_posible, size * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_camino, h_caminos, size * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(dev_index, h_index, sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(dev_encontrado, &h_encontrado, sizeof(bool), cudaMemcpyHostToDevice);
 
@@ -257,40 +251,15 @@ void encontrarCamino(int* h_tablero, int numFilas, int numColumnas, int coordX, 
         cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
         printf("Valor del puntero %d \n", h_encontrado);
         printf("H_inxex %d\n", h_index);
+        for (int i = 0; i < (int) h_index; i++) {
+            printf("Camino \n", &h_caminos[i]);
+        }
         mostrarTablero(h_tablero, numFilas, numColumnas);
     }
-    
-    h_encontrado = true;
-    int num_camino = (int)h_index;
-    int* h_caminos_aux = h_caminos;
-    for (int i = 0; i < num_camino; i++) {
-        printf("Camino \n", h_caminos[i]);
-    }
-    for (int i = 0; i < num_camino; i++) { 
-        printf("Iteracion %d \n", i);
-        printf("Posicion a encontrar: \n", h_caminos_aux[i]);
-        while (h_encontrado) {
-            kernelEncontrarCaminos << <1, threadsInBlock >> > (dev_Tablero, dev_camino, numFilas, numColumnas, dev_index, h_caminos_aux[i], dev_encontrado, color);
-            cudaMemcpy(h_caminos, dev_camino, size * sizeof(int), cudaMemcpyDeviceToHost);
-            cudaMemcpy(&h_encontrado, dev_encontrado, sizeof(bool), cudaMemcpyDeviceToHost);
-            cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
-            cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
-            printf("Valor del puntero %d \n", h_encontrado);
-            printf("H_inxex %d\n", h_index);
-            mostrarTablero(h_tablero, numFilas, numColumnas);
-        }
-        h_encontrado = true;
-    }
-    
-    //cudaMemcpy(h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
-    //printf("H_INDEX: %d", h_index[0]);
     cudaFree(dev_encontrado);
     cudaFree(dev_Tablero);
     cudaFree(dev_index);
     cudaFree(dev_camino);
-    cudaFree(camino_posible);
-    //Muestra caminoS
-
 
 }
 

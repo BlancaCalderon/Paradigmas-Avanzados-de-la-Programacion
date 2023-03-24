@@ -36,6 +36,69 @@ void mostrarTablero(int* tablero, int numFilas, int numColumnas)
     printf("\n");
 }
 
+//Kernel que elimina la fila y columna de la posicion pasada (Bomba)
+__global__ void kernelBomba(int* dev_tablero, int numFila, int numCol, int pos_encontrar)
+{
+    int pos = blockIdx.x * blockDim.x + threadIdx.x;        //Posicion en la que nos encontramos
+
+    //Calcula fila y columna de la posición actual
+    int filaActual = pos / numCol;
+    int colActual = pos - filaActual * numCol;
+
+    //Calcula fila y columna a borrar
+    int filaBorrar = pos_encontrar / numCol;
+    int colBorrar = pos_encontrar - filaBorrar * numCol;
+
+    //si posición actual esta en la fila o columna que queremos borrar
+    if (filaBorrar == filaActual || colBorrar == colActual && 0 <= filaActual <= numFila && 0 <= colActual <= numCol)
+    {
+        dev_tablero[pos] = -1; //Indicamos que se borra
+    }
+}
+
+
+//Kernel que elimina los elementos adyacentes a una posición (radio 4 elementos) (TNT)
+__global__ void kernelTNT(int* dev_tablero, int numFila, int numCol, int pos_encontrar)
+{
+    int pos = blockIdx.x * blockDim.x + threadIdx.x;        //Posicion en la que nos encontramos
+
+    //Calcula fila y columna de la posición actual
+    int filaActual = pos / numCol;
+    int colActual = pos - filaActual * numCol;
+
+    //Calcula fila y columna a borrar teniendo en cuenta el rango
+    int filaBorrar = pos_encontrar / numCol;
+    int colBorrar = pos_encontrar - filaBorrar * numCol;
+
+    int filaBorrarDer = filaBorrar + 4;
+    int colBorrarAbajo = colBorrar + 4;
+    int filaBorrarIzq = filaBorrar - 4;
+    int colBorrarArriba = colBorrar  - 4;
+
+    //si posición actual es adyacente y esta dentro del rango que queremos borrar (4)
+    if (filaBorrarIzq <= filaActual <= filaBorrarDer && colBorrarArriba <= colActual <= colBorrarAbajo &&  0 <= filaActual <= numFila && 0 <= colActual <= numCol)     
+    {
+        dev_tablero[pos] = -1; //Indicamos que se borra
+    }
+}
+
+
+//Kernel que elimina todos las posiciones del color indicado (ROMPECABEZAS)
+__global__ void kernelRompeCabezas(int* dev_tablero, int numFila, int numCol, int color)
+{
+    int pos = blockIdx.x * blockDim.x + threadIdx.x;        //Posicion en la que nos encontramos
+
+    //Calcula fila y columna de la posición actual
+    int filaActual = pos / numCol;
+    int colActual = pos - filaActual * numCol;
+
+    //si posición actual tiene el color indicado se elimina
+    if (dev_tablero[pos] == color)
+    {
+        dev_tablero[pos] = -1; //Indicamos que se borra
+    }
+}
+
 
 //Kernel que lleva a cabo la generacion del tablero de forma aleatoria
 __global__ void kernelGenerarTablero(int* dev_tablero, int dev_semilla, int dificultad)
@@ -72,6 +135,8 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
         {
             printf("Hilo GENERA COLOR NUEVO %d \n", pos);
             dev_tablero[pos] = color;
+            atomicAdd(&dev_index[0], 1);
+            __syncthreads();
         }
     }
     __syncthreads();
@@ -196,31 +261,6 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
     
 }
 
-//kernel usado para eliminar las posiciones encontradas
-__global__ void kernelEliminar(int* dev_tablero, int* posiciones, int numFila, int numCol, int numPosiciones)
-{
-    int pos = blockIdx.x * blockDim.x + threadIdx.x;
-
-    for (int i = 0; i < numPosiciones; i++)    
-    {
-        if (pos == posiciones[i])
-        {
-            dev_tablero[pos] = 0; //Sustitute valor de la casilla a borrar por 0 
-        }
-    }
-}
-
-//kernel que cambia las posiciones eliminadas por la casilla de encima o un numero aleatorio en el caso de que no lo haya
-__global__ void kernelRellenar(int* dev_tablero, int numFila, int numCol)
-{
-    int pos = blockIdx.x * blockDim.x + threadIdx.x;
-    for (int i = numFila * numCol; i > 0; i--)  //Recorre de forma inversa el tablero
-    {
-        printf("RELLLLENAR");
-    }
-}
-
-
 //Inicializamos el tablero
 int* inicializarTablero(int* h_tablero, int size, int dificultad)
 {
@@ -273,45 +313,148 @@ void encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int
     cudaMemcpy(dev_encontrado, &h_encontrado, sizeof(bool), cudaMemcpyHostToDevice);
 
     dim3 threadsInBlock(size);
-    while (h_encontrado) {
-        kernelEncontrarCaminos << <1, threadsInBlock >> > (dev_Tablero, dev_camino, numFilas, numColumnas, dev_index, pos_encontrar, dev_encontrado, color);
-        cudaMemcpy(h_caminos, dev_camino, size * sizeof(int), cudaMemcpyDeviceToHost);
-        cudaMemcpy(&h_encontrado, dev_encontrado, sizeof(bool), cudaMemcpyDeviceToHost);
+
+    //Segun si es alguno de los bloques especiales o es una jugada normal (66 --> B, 84 --> T,
+    switch (h_tablero[pos_encontrar])
+    {
+        case 'B':
+            kernelBomba << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, pos_encontrar);
+            cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
+            h_tablero[pos_encontrar] = -1;              //Eliminamos bloque especial
+            mostrarTablero(h_tablero, numFilas, numColumnas);
+            break;
+
+        case 'T':
+            kernelTNT << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, pos_encontrar);
+            cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
+            h_tablero[pos_encontrar] = -1;              //Eliminamos bloque especial
+            mostrarTablero(h_tablero, numFilas, numColumnas);
+            break;
+
+        case 'R1':
+            kernelRompeCabezas<<<1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, 1);
+            cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
+            h_tablero[pos_encontrar] = -1;              //Eliminamos bloque especial
+            mostrarTablero(h_tablero, numFilas, numColumnas);
+            break;
+
+        case 'R2':
+            kernelRompeCabezas << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, 2);
+            cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
+            h_tablero[pos_encontrar] = -1;              //Eliminamos bloque especial
+            mostrarTablero(h_tablero, numFilas, numColumnas);
+            break;
+
+        case 'R3':
+            kernelRompeCabezas << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, 3);
+            cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
+            h_tablero[pos_encontrar] = -1;              //Eliminamos bloque especial
+            mostrarTablero(h_tablero, numFilas, numColumnas);
+            break;
+
+        
+        case 'R4':
+            kernelRompeCabezas << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, 4);
+            cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
+            h_tablero[pos_encontrar] = -1;              //Eliminamos bloque especial
+            mostrarTablero(h_tablero, numFilas, numColumnas);
+            break;
+
+        case 'R5':
+            kernelRompeCabezas << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, 5);
+            cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
+            h_tablero[pos_encontrar] = -1;              //Eliminamos bloque especial
+            mostrarTablero(h_tablero, numFilas, numColumnas);
+            break;
+
+        case 'R6':
+            kernelRompeCabezas << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, 6);
+            cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
+            h_tablero[pos_encontrar] = -1;              //Eliminamos bloque especial
+            mostrarTablero(h_tablero, numFilas, numColumnas);
+            break;
+
+        default:
+            //Desde posición idicada se encuentran todos los caminos con el mismo color
+            while (h_encontrado)
+            {
+                kernelEncontrarCaminos << <1, threadsInBlock >> > (dev_Tablero, dev_camino, numFilas, numColumnas, dev_index, pos_encontrar, dev_encontrado, color);
+                cudaMemcpy(h_caminos, dev_camino, size * sizeof(int), cudaMemcpyDeviceToHost);
+                cudaMemcpy(&h_encontrado, dev_encontrado, sizeof(bool), cudaMemcpyDeviceToHost);
+                cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
+                cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
+                printf("Valor del puntero %d \n", h_encontrado);
+                printf("H_inxex %d\n", h_index);
+                for (int i = 0; i < (int)h_index; i++) {
+                    printf("Camino \n", &h_caminos[i]);
+                }
+                mostrarTablero(h_tablero, numFilas, numColumnas);
+            }
+
+    }
+
+    /*
+    //Se comprueba si la posición seleccionada es algun bloque especial (bomba, TNT o rompecabezas)
+    //Si es el bloque Bomba
+    if (h_tablero[pos_encontrar] == 66) //66 es valor del caracrer B
+    {
+        kernelBomba << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, pos_encontrar);
         cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
-        cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
-        printf("Valor del puntero %d \n", h_encontrado);
-        printf("H_inxex %d\n", h_index);
-        for (int i = 0; i < (int) h_index; i++) {
-            printf("Camino \n", &h_caminos[i]);
-        }
         mostrarTablero(h_tablero, numFilas, numColumnas);
     }
+
+    //Si es el bloque TNT
+    else if (h_tablero[pos_encontrar] == 84) //84 es valor del caracrer T
+    {
+        kernelTNT << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, pos_encontrar);
+        cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
+        mostrarTablero(h_tablero, numFilas, numColumnas);
+    }
+
+    //Si es el bloque rompecabezas
+    else if (h_tablero[pos_encontrar] == 'R')
+
+    else
+    {
+        //Desde posición idicada se encuentran todos los caminos con el mismo color
+        while (h_encontrado)
+        {
+            kernelEncontrarCaminos << <1, threadsInBlock >> > (dev_Tablero, dev_camino, numFilas, numColumnas, dev_index, pos_encontrar, dev_encontrado, color);
+            cudaMemcpy(h_caminos, dev_camino, size * sizeof(int), cudaMemcpyDeviceToHost);
+            cudaMemcpy(&h_encontrado, dev_encontrado, sizeof(bool), cudaMemcpyDeviceToHost);
+            cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
+            cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
+            printf("Valor del puntero %d \n", h_encontrado);
+            printf("H_inxex %d\n", h_index);
+            for (int i = 0; i < (int)h_index; i++) {
+                printf("Camino \n", &h_caminos[i]);
+            }
+            mostrarTablero(h_tablero, numFilas, numColumnas);
+        }
+    }*/
 
     unsigned int semilla = time(NULL);
     h_index = { 0 };
     int iteraciones = 10;
+
+    //Bucle para reemplazar las posiciones eliminadas mientras que se pueda hacer algun cambio y si no termine
     while (iteraciones > 0) 
     {
         //h_index = { 0 };
         kernelReemplazarPosiciones << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, semilla, dificultad, dev_index);
         cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
-        mostrarTablero(h_tablero, numFilas, numColumnas);
         iteraciones = (int) h_index;
         printf("Iteraciones %d\n", iteraciones);
-
     }
+    mostrarTablero(h_tablero, numFilas, numColumnas);
     
-
     cudaFree(dev_encontrado);
     cudaFree(dev_Tablero);
     cudaFree(dev_index);
     cudaFree(dev_camino);
 
 }
-
-
-
 
 void main(int argc, char* argv[])
 {
@@ -334,7 +477,7 @@ void main(int argc, char* argv[])
 
     //Llamamos a la funcion que inicializa con valores aleatorios el tablero
     //h_tablero = inicializarTablero(h_tablero, size, dificultad);
-    int h_tablero[25] = { 3,3,3,3,4,3,3,4,3,1,4,3,4,3,1,3,1,3,3,3,4,1,1,4,3 };
+    int h_tablero[25] = { 3,3,3,3,4,3,3,4,3,1,4,3,'R3',3,1,3,1,3,3,3,4,1,1,4,3};
     //Mostramos el tablero
     mostrarTablero(h_tablero, numFilas, numColumnas);
 

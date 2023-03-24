@@ -46,7 +46,36 @@ __global__ void kernelGenerarTablero(int* dev_tablero, int dev_semilla, int difi
     dev_tablero[pos] = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
 }
 
-
+__global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int numCol, int dev_semilla, int dificultad, int* dev_index)
+{
+    int pos = blockIdx.x * blockDim.x + threadIdx.x;        //Posicion en la que nos encontramos
+    dev_index[0] = 0;
+    curandState_t state;
+    curand_init(dev_semilla, pos, 0, &state); //curand_init(semilla, secuencia, offset, estado) secuencia dgenera diferentes secuencias de numeros aleatorio a partir de la misma semilla y offset genera numeros aleatorio s a partir de una secuencia y una semilla  CurandState curandState;
+    int color = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
+    if (dev_tablero[pos] == -1) 
+    {
+        
+        int filaActual = pos / numCol;
+        int colActual = pos - filaActual * numCol;
+        printf("Hilo %d [%d][%d] \n", pos, filaActual, colActual);
+        if (filaActual > 0 && filaActual <= numFila && dev_tablero[pos - numCol] != -1)
+        {
+            __syncthreads();
+            printf("Hilo COGE COLOR %d \n", pos);
+            dev_tablero[pos] = dev_tablero[pos - numCol];
+            dev_tablero[pos - numCol] = -1;
+            atomicAdd(&dev_index[0], 1);
+            __syncthreads();
+        }
+        else if (dev_tablero[pos - numCol] != -1)
+        {
+            printf("Hilo GENERA COLOR NUEVO %d \n", pos);
+            dev_tablero[pos] = color;
+        }
+    }
+    __syncthreads();
+}
  __global__ void kernelEncontrarCaminos(int* dev_tablero, int* dev_camino, int numFila, int numCol, int* dev_index, int pos_encontrar, bool* dev_encontrado, int color)
     {
         int pos = blockIdx.x * blockDim.x + threadIdx.x;        //Posicion en la que nos encontramos
@@ -191,6 +220,7 @@ __global__ void kernelRellenar(int* dev_tablero, int numFila, int numCol)
     }
 }
 
+
 //Inicializamos el tablero
 int* inicializarTablero(int* h_tablero, int size, int dificultad)
 {
@@ -215,7 +245,7 @@ int* inicializarTablero(int* h_tablero, int size, int dificultad)
 }
 
 //Funcion que llama a kernel para encontrar todos los caminos hacia bloque indicado
-void encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int coordX, int coordY)
+void encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int coordX, int coordY, int dificultad)
 {   
     int* h_tablero = h_tablero_original;
     int* h_caminos;
@@ -256,6 +286,23 @@ void encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int
         }
         mostrarTablero(h_tablero, numFilas, numColumnas);
     }
+
+    unsigned int semilla = time(NULL);
+    h_index = { 0 };
+    int iteraciones = 10;
+    while (iteraciones > 0) 
+    {
+        //h_index = { 0 };
+        kernelReemplazarPosiciones << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, semilla, dificultad, dev_index);
+        cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
+        mostrarTablero(h_tablero, numFilas, numColumnas);
+        iteraciones = (int) h_index;
+        printf("Iteraciones %d\n", iteraciones);
+
+    }
+    
+
     cudaFree(dev_encontrado);
     cudaFree(dev_Tablero);
     cudaFree(dev_index);
@@ -294,7 +341,7 @@ void main(int argc, char* argv[])
     while (!terminado) {
         printf("\nIntroduzca las coordenadas del bloque que desea eliminar (x, y):  \n");
         scanf("%d %d", &coordenadaX, &coordenadaY);
-        encontrarCamino(h_tablero, numFilas, numColumnas, coordenadaX, coordenadaY);
+        encontrarCamino(h_tablero, numFilas, numColumnas, coordenadaX, coordenadaY, dificultad);
     }
 
 }

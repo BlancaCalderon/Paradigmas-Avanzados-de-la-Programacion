@@ -121,11 +121,10 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
         
         int filaActual = pos / numCol;
         int colActual = pos - filaActual * numCol;
-        printf("Hilo %d [%d][%d] \n", pos, filaActual, colActual);
         if (filaActual > 0 && filaActual <= numFila && dev_tablero[pos - numCol] != -1)
         {
             __syncthreads();
-            printf("Hilo COGE COLOR %d \n", pos);
+
             dev_tablero[pos] = dev_tablero[pos - numCol];
             dev_tablero[pos - numCol] = -1;
             atomicAdd(&dev_index[0], 1);
@@ -133,7 +132,7 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
         }
         else if (dev_tablero[pos - numCol] != -1)
         {
-            printf("Hilo GENERA COLOR NUEVO %d \n", pos);
+
             dev_tablero[pos] = color;
             atomicAdd(&dev_index[0], 1);
             __syncthreads();
@@ -154,7 +153,7 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
         int colActual = pos - filaActual * numCol;
         int ultima_posicion = pos;
 
-        if (dev_tablero[pos] == color || dev_tablero[pos] == -1 && pos_encontrar == pos)
+        if ((dev_tablero[pos] == color || dev_tablero[pos] == -1) && pos_encontrar == pos)
         {
           //  printf("POS A ENCONTRAR %d \n", pos_encontrar);
             encontrado = false;
@@ -172,12 +171,6 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
                 int posSigFila = (posAux + numCol) / numCol;
                 int fila_actual = posAux / numCol;
                 int col_actual = posAux - fila_actual * numCol;
-
-                // printf("\n DERECHA- fila [%d] col [%d] hilo %d\n", sigfila, sigcol, pos);
-                // printf("\n ABAJO - fila[%d] col[%d] (hilo %d)\n", posSigFila, col_actual, pos);
-                // printf("\n IZQUIEDA - fila[%d] col[%d] posicion %d (hilo %d) posicion ACTUAL %d\n", fila_actual, col_anterior, posAux - 1, pos, posAux);
-                // printf("\n Condicion derecha: hilo %d va la columna %d (desde posAux %d )\n", pos, posAux+1, posAux);
-                // printf("\n Condicion abajo: hilo %d desde: posAux %d va a la columna %d\n", pos, posAux, posAux + numCol);
 
                 if (color == dev_tablero[posAux + 1]  && sigcol >= 0 && (posAux + 1) != ultima_posicion)          //Nos desplazamos a la derecha
                 {
@@ -210,14 +203,6 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
                 }
                 else if (color == dev_tablero[posAux - numCol] && (posAux - numCol) != ultima_posicion && (posAux - numCol) >= 0 && filaActual >= 0 && filaActual <= numFila)  //ARRIBA
                 {
-                    //printf("\nAvanza a la pos de ARRIBA [%d] hilo %d", posAux, pos);
-                    /*
-                    if (posAux != pos) {
-                        dev_camino[dev_index[0]] = posAux;
-                        atomicAdd(&dev_index[0], 1);
-                        
-                    }
-                    */
                     index += 1;
                     ultima_posicion = posAux;
                     printf("\nAvanza a la pos ARRIBA [%d] ultima posicion %d hilo %d", (posAux - numCol), ultima_posicion, pos);
@@ -230,7 +215,7 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
                     printf("\nNumero elementos %d\n", dev_index[0]);
                     
                         printf("\nCamino ENCONTRADO %d\n", pos);
-                        //dev_camino[dev_index[0]]
+
                         if (index > 0) {
                             dev_camino[dev_index[0]] = pos;
                             atomicAdd(&dev_index[0], 1);
@@ -250,7 +235,6 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
                 }
 
             }
-            //atomicOr(dev_encontrado, encontrado);
             dev_encontrado[0] = encontrado;
             printf("DEV_ENCONTRADO %d \n", dev_encontrado[0]);
             printf("DEV_INDEX %d \n", dev_index[0]);
@@ -260,6 +244,66 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
         
     
 }
+
+ __global__ void kernelEncontrarBomba(int* dev_tablero, int numFila, int numCol, int pos_encontrar, int* dev_index_fila, int* dev_index_col)
+ {
+     int pos = blockIdx.x * blockDim.x + threadIdx.x;
+
+     //Calcula fila y columna de la posición actual
+     int filaActual = pos / numCol;
+     int colActual = pos - filaActual * numCol;
+
+     //Calcula fila y columna de la posición a encontrar
+     int filaEncontrar = pos_encontrar / numCol;
+     int colEncontrar = pos_encontrar - filaEncontrar * numCol;
+
+     if (filaActual == filaEncontrar && (int)dev_index_fila > 5 && dev_tablero[pos] == -1)
+     {
+         atomicAdd(&dev_index_fila[0], 1);
+     } 
+
+     if (colActual == colEncontrar && (int)dev_index_fila > 5 && dev_tablero[pos] == -1)
+     {
+         atomicAdd(&dev_index_col[0], 1);
+     }
+
+     __syncthreads();
+     if ((int)dev_index_fila != (int)dev_index_col)
+     {
+         if (((int)dev_index_fila == 5 && (int)dev_index_col == 1) || ((int)dev_index_col == 5 && (int)dev_index_fila == 1))
+         {
+             dev_tablero[pos_encontrar] = 'B';
+         }
+
+     }
+ }
+
+ __global__ void kernelEncontrarRompecabezas(int* dev_tablero, int numFila, int numCol, int pos_encontrar, int* dev_index)
+ {
+     int pos = blockIdx.x * blockDim.x + threadIdx.x;
+
+     //Calcula fila y columna de la posición actual
+     int filaActual = pos / numCol;
+     int colActual = pos - filaActual * numCol;
+
+     //Calcula fila y columna de la posición a encontrar
+     int filaEncontrar = pos_encontrar / numCol;
+     int colEncontrar = pos_encontrar - filaEncontrar * numCol;
+
+     if (dev_tablero[pos] == -1 && (int)dev_index > 7)
+     {
+         atomicAdd(&dev_index[0], 1);
+     }
+     __syncthreads();
+
+     if ((int)dev_index >= 7 && pos == pos_encontrar)
+     {
+         printf("Soy el hilo %d voy a actualizar el tablero \n ", pos);
+         dev_tablero[pos_encontrar] = 'RC';
+     }
+
+ }
+
 
 //Inicializamos el tablero
 int* inicializarTablero(int* h_tablero, int size, int dificultad)
@@ -289,27 +333,31 @@ void encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int
 {   
     int* h_tablero = h_tablero_original;
     int* h_caminos;
-    int* (dev_Tablero), * (dev_index), * (dev_camino);
+    int* (dev_Tablero), * (dev_index), * (dev_camino), *(dev_index_fila), *(dev_index_col);
     bool* dev_encontrado;
     int size = numFilas * numColumnas;
     bool h_encontrado = true;
     int* h_index = { 0 };
+    int* h_index_col = { 0 };
+    int* h_index_fila = { 0 };
     int pos_encontrar = coordX * numFilas + coordY;   //Posicion a ENCONTRAR en el vector 1D
     int color = h_tablero[pos_encontrar];
     h_caminos = (int*)malloc(size * sizeof(int));
-    //h_index = (int*)malloc(sizeof(int));
-    //cudaMalloc((void**)&h_caminos, size * sizeof(int));
 
     //Reservar espacio en memoria para GPU (2 matrices y matriz resultado)
     cudaMalloc((void**)&dev_Tablero, size * sizeof(int));
     cudaMalloc((void**)&dev_camino, size * sizeof(int));
     cudaMalloc((void**)&dev_index, sizeof(int));
+    cudaMalloc((void**)&dev_index_col, sizeof(int));
+    cudaMalloc((void**)&dev_index_fila, sizeof(int));
     cudaMalloc(&dev_encontrado, sizeof(bool));
 
     //Copiamos datos a la GPU 
     cudaMemcpy(dev_Tablero, h_tablero, size * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(dev_camino, h_caminos, size * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(dev_index, h_index, sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_index_col, h_index_col, sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_index_fila, h_index_fila, sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(dev_encontrado, &h_encontrado, sizeof(bool), cudaMemcpyHostToDevice);
 
     dim3 threadsInBlock(size);
@@ -388,64 +436,41 @@ void encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int
                 for (int i = 0; i < (int)h_index; i++) {
                     printf("Camino \n", &h_caminos[i]);
                 }
+                
                 mostrarTablero(h_tablero, numFilas, numColumnas);
             }
-
-    }
-
-    /*
-    //Se comprueba si la posición seleccionada es algun bloque especial (bomba, TNT o rompecabezas)
-    //Si es el bloque Bomba
-    if (h_tablero[pos_encontrar] == 66) //66 es valor del caracrer B
-    {
-        kernelBomba << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, pos_encontrar);
-        cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
-        mostrarTablero(h_tablero, numFilas, numColumnas);
-    }
-
-    //Si es el bloque TNT
-    else if (h_tablero[pos_encontrar] == 84) //84 es valor del caracrer T
-    {
-        kernelTNT << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, pos_encontrar);
-        cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
-        mostrarTablero(h_tablero, numFilas, numColumnas);
-    }
-
-    //Si es el bloque rompecabezas
-    else if (h_tablero[pos_encontrar] == 'R')
-
-    else
-    {
-        //Desde posición idicada se encuentran todos los caminos con el mismo color
-        while (h_encontrado)
-        {
-            kernelEncontrarCaminos << <1, threadsInBlock >> > (dev_Tablero, dev_camino, numFilas, numColumnas, dev_index, pos_encontrar, dev_encontrado, color);
-            cudaMemcpy(h_caminos, dev_camino, size * sizeof(int), cudaMemcpyDeviceToHost);
-            cudaMemcpy(&h_encontrado, dev_encontrado, sizeof(bool), cudaMemcpyDeviceToHost);
-            cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
-            cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
-            printf("Valor del puntero %d \n", h_encontrado);
-            printf("H_inxex %d\n", h_index);
-            for (int i = 0; i < (int)h_index; i++) {
-                printf("Camino \n", &h_caminos[i]);
-            }
+            h_tablero[pos_encontrar] = -1;              //Eliminamos la posicion a encontrar
+            cudaMemcpy(dev_Tablero, h_tablero, size * sizeof(int), cudaMemcpyHostToDevice); //Cargamos en GPU el nuevo tablero actualizado
             mostrarTablero(h_tablero, numFilas, numColumnas);
-        }
-    }*/
+            kernelEncontrarBomba << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, pos_encontrar, dev_index_fila, dev_index_col);
+            cudaMemcpy(&h_index_fila, dev_index_fila, sizeof(int), cudaMemcpyDeviceToHost);
+            cudaMemcpy(&h_index_col, dev_index_col, sizeof(int), cudaMemcpyDeviceToHost);
+
+            printf("N Filas %d - N Columnas %d \n", h_index_fila, h_index_col);
+            mostrarTablero(h_tablero, numFilas, numColumnas);
+
+            h_index = { 0 };
+
+            cudaMemcpy(dev_index, h_index, sizeof(int), cudaMemcpyHostToDevice);
+            cudaMemcpy(dev_Tablero, h_tablero, size * sizeof(int), cudaMemcpyHostToDevice); //Cargamos en GPU el nuevo tablero actualizado
+            kernelEncontrarRompecabezas << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, pos_encontrar, dev_index);
+            cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
+            cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
+            mostrarTablero(h_tablero, numFilas, numColumnas);
+            
+    }
 
     unsigned int semilla = time(NULL);
     h_index = { 0 };
     int iteraciones = 10;
-
+    cudaMemcpy(dev_Tablero, h_tablero, size * sizeof(int), cudaMemcpyHostToDevice);
     //Bucle para reemplazar las posiciones eliminadas mientras que se pueda hacer algun cambio y si no termine
     while (iteraciones > 0) 
     {
-        //h_index = { 0 };
         kernelReemplazarPosiciones << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, semilla, dificultad, dev_index);
         cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
         iteraciones = (int) h_index;
-        printf("Iteraciones %d\n", iteraciones);
     }
     mostrarTablero(h_tablero, numFilas, numColumnas);
     
@@ -477,7 +502,8 @@ void main(int argc, char* argv[])
 
     //Llamamos a la funcion que inicializa con valores aleatorios el tablero
     //h_tablero = inicializarTablero(h_tablero, size, dificultad);
-    int h_tablero[25] = { 3,3,3,3,4,3,3,4,3,1,4,3,'R3',3,1,3,1,3,3,3,4,1,1,4,3};
+    //int h_tablero[25] = { 3,3,3,3,4,3,3,4,3,1,4,3,'B',3,1,3,1,3,3,3,4,1,1,4,3};
+     int h_tablero[25] = { 3,3,3,3,3,4,4,4,4,4,4,3,'B',3,1,3,1,3,3,3,4,1,1,4,3};
     //Mostramos el tablero
     mostrarTablero(h_tablero, numFilas, numColumnas);
 

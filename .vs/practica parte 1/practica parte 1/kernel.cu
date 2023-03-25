@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <curand.h>
 #include <curand_kernel.h>
+#include <device_functions.h>
 
 //Define constantes
 #define AZUL 1
@@ -23,13 +24,23 @@ __constant__ int* COLUMNAS;
 
 
 //Funcion que muestra el tablero por consola
-void mostrarTablero(int* tablero, int numFilas, int numColumnas)
+void mostrarTablero(int* tablero, int numFilas, int numColumnas, int dificultad)
 {
+    
     for (int i = 0; i < numFilas; i++)
     {
         for (int j = 0; j < numColumnas; j++)
         {
-            printf("%d  ", tablero[i * numFilas + j]);
+            int num = tablero[i * numFilas + j];
+            if (num > dificultad)
+            {
+                printf("%c  ", (char) num);
+            }
+            else
+            {
+                printf("%d  ", num);
+            }
+            
         }
         printf("\n");
     }
@@ -120,10 +131,8 @@ __global__ void kernelGenerarTablero(int* dev_tablero, int dev_semilla, int difi
 __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int numCol, int dev_semilla, int dificultad, int* dev_index)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;        //Posicion en la que nos encontramos
-    dev_index[0] = 0;
-    curandState_t state;
-    curand_init(dev_semilla, pos, 0, &state); //curand_init(semilla, secuencia, offset, estado) secuencia dgenera diferentes secuencias de numeros aleatorio a partir de la misma semilla y offset genera numeros aleatorio s a partir de una secuencia y una semilla  CurandState curandState;
-    int color = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
+    dev_index[0] = 0;                                       //Lo utilizamos para contabilizar el numero de llamadas que hay que realizar al kernel 
+   
     if (dev_tablero[pos] == -1) 
     {
         
@@ -135,12 +144,15 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
 
             dev_tablero[pos] = dev_tablero[pos - numCol];
             dev_tablero[pos - numCol] = -1;
-            atomicAdd(&dev_index[0], 1);
+            atomicAdd(&dev_index[0], 1);        
             __syncthreads();
         }
         else if (dev_tablero[pos - numCol] != -1)
         {
-
+            curandState_t state;
+            curand_init(dev_semilla, pos, 0, &state); //curand_init(semilla, secuencia, offset, estado) secuencia dgenera diferentes secuencias de numeros aleatorio a partir de la misma semilla y offset genera numeros aleatorio s a partir de una secuencia y una semilla  CurandState curandState;
+            int color = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
+            printf("COLOR %d\n", color);
             dev_tablero[pos] = color;
             atomicAdd(&dev_index[0], 1);
             __syncthreads();
@@ -313,7 +325,8 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
          curand_init(dev_semilla, pos, 0, &state); //curand_init(semilla, secuencia, offset, estado) secuencia dgenera diferentes secuencias de numeros aleatorio a partir de la misma semilla y offset genera numeros aleatorio s a partir de una secuencia y una semilla  CurandState curandState;
          int color = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
          printf("Soy el hilo %d voy a actualizar el tablero \n ", pos);
-         dev_tablero[pos_encontrar] = 'RC' + color;
+         char colorS = 'RC' + color;
+         dev_tablero[pos_encontrar] = colorS;
      }
 
  }
@@ -382,50 +395,50 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
         case 'B':
             kernelBomba << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, pos_encontrar);
             cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
-            mostrarTablero(h_tablero, numFilas, numColumnas);
+            mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
             break;
 
         case 'T':
             kernelTNT << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, pos_encontrar);
             cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
-            mostrarTablero(h_tablero, numFilas, numColumnas);
+            mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
             break;
 
         case 'R1':
             kernelRompeCabezas<<<1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, 1, pos_encontrar);
             cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
-            mostrarTablero(h_tablero, numFilas, numColumnas);
+            mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
             break;
 
         case 'R2':
             kernelRompeCabezas << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, 2, pos_encontrar);
             cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
-            mostrarTablero(h_tablero, numFilas, numColumnas);
+            mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
             break;
 
         case 'R3':
             kernelRompeCabezas << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, 3, pos_encontrar);
             cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
-            mostrarTablero(h_tablero, numFilas, numColumnas);
+            mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
             break;
 
         
         case 'R4':
             kernelRompeCabezas << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, 4, pos_encontrar);
             cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
-            mostrarTablero(h_tablero, numFilas, numColumnas);
+            mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
             break;
 
         case 'R5':
             kernelRompeCabezas << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, 5, pos_encontrar);
             cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
-            mostrarTablero(h_tablero, numFilas, numColumnas);
+            mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
             break;
 
         case 'R6':
             kernelRompeCabezas << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, 6, pos_encontrar);
             cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
-            mostrarTablero(h_tablero, numFilas, numColumnas);
+            mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
             break;
 
         default:
@@ -439,26 +452,27 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
                 printf("Valor del puntero %d \n", h_encontrado);
                 printf("H_inxex %d\n", h_index);
                 
-                mostrarTablero(h_tablero, numFilas, numColumnas);
+                mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
             }
             if ((int)h_index == 0 && vida >= 1)
             {
                 vida = vida - 1;
             }
-
-            mostrarTablero(h_tablero, numFilas, numColumnas);
+            h_index_fila = { 0 };
+            h_index_col = { 0 };
+            mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
             kernelEncontrarBomba << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, pos_encontrar, dev_index_fila, dev_index_col);
             cudaMemcpy(&h_index_fila, dev_index_fila, sizeof(int), cudaMemcpyDeviceToHost);
             cudaMemcpy(&h_index_col, dev_index_col, sizeof(int), cudaMemcpyDeviceToHost);
 
             printf("N Filas %d - N Columnas %d \n", h_index_fila, h_index_col);
-            mostrarTablero(h_tablero, numFilas, numColumnas);
+            mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
 
             
             kernelEncontrarRompecabezas << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, pos_encontrar, dev_index_RC, semilla, dificultad);
             cudaMemcpy(&h_index_RC, dev_index_RC, sizeof(int), cudaMemcpyDeviceToHost);
             cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
-            mostrarTablero(h_tablero, numFilas, numColumnas);
+            mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
             
     }
 
@@ -473,7 +487,7 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
         cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
         iteraciones = (int) h_index;
     }
-    mostrarTablero(h_tablero, numFilas, numColumnas);
+    mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
     
     cudaFree(dev_encontrado);
     cudaFree(dev_Tablero);
@@ -508,17 +522,17 @@ void main(int argc, char* argv[])
     //Llamamos a la funcion que inicializa con valores aleatorios el tablero
     //h_tablero = inicializarTablero(h_tablero, size, dificultad);
     //int h_tablero[25] = { 3,3,3,3,4,3,3,4,3,1,4,3,'B',3,1,3,1,3,3,3,4,1,1,4,3};
-    // int h_tablero[25] = { 3,3,3,3,3,3,3,4,4,4,4,3,'B',3,1,3,1,3,3,3,4,1,1,4,3};
-    int h_tablero[25] = { 3,2,1,5,5,3,3,6,7,8,9,3,'B',3,1,3,1,3,3,3,4,1,1,4,3 };
+     int h_tablero[25] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,3,1,3,1,3,3,3,4,1,1,4,3};
+   // int h_tablero[25] = { 3,2,1,5,5,3,3,6,7,3,9,3,'B',3,1,3,1,3,3,3,4,1,1,4,3 };
     //Mostramos el tablero
     
     printf("\nElija el modo de juego: A (Automatico) - M (Manual):  \n");
     scanf("%c", &modoJuego);
     printf("Modo de juego seleccionado: %c \n", modoJuego);
-    mostrarTablero(h_tablero, numFilas, numColumnas);
+    mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
 
     while (vida > 0) {
-        if (modoJuego == 'B' || modoJuego == 'b')
+        if (modoJuego == 'M' || modoJuego == 'm')
         {
             printf("\nIntroduzca las coordenadas del bloque que desea eliminar (x, y):  \n");
             scanf("%d %d", &coordenadaX, &coordenadaY);

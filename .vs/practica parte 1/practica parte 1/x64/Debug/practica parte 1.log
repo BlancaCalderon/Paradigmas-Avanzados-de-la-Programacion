@@ -1,1 +1,90 @@
-﻿  practica parte 1.vcxproj -> C:\Users\Raquel\Documents\Ingenieria informatica\3º Curso\Paradigmas Avanzados Programación\PECL1\Paradigmas-Avanzados-de-la-Programacion\.vs\practica parte 1\x64\Debug\practica parte 1.exe
+﻿  Compiling CUDA source file kernel.cu...
+  
+  C:\Users\yo\Desktop\Practica 1\Paradigmas-Avanzados-de-la-Programacion\.vs\practica parte 1\practica parte 1>"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\bin\nvcc.exe" -gencode=arch=compute_30,code=\"sm_30,compute_30\" --use-local-env -ccbin "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\bin\HostX86\x64" -x cu  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\include"  -G   --keep-dir x64\Debug -maxrregcount=0  --machine 64 --compile -cudart static  -g   -DWIN32 -DWIN64 -D_DEBUG -D_CONSOLE -D_MBCS -Xcompiler "/EHsc /W3 /nologo /Od /Fdx64\Debug\vc142.pdb /FS /Zi /RTC1 /MDd " -o x64\Debug\kernel.cu.obj "C:\Users\yo\Desktop\Practica 1\Paradigmas-Avanzados-de-la-Programacion\.vs\practica parte 1\practica parte 1\kernel.cu" 
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(116): warning : variable "colActual" was declared but never referenced
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(147): warning : variable "colActual" was declared but never referenced
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(199): warning : variable "posSigFila" was declared but never referenced
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(201): warning : variable "col_actual" was declared but never referenced
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(181): warning : variable "colActual" was declared but never referenced
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(289): warning : conversion from pointer to smaller integer
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(294): warning : conversion from pointer to smaller integer
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(322): warning : conversion from pointer to smaller integer
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(316): warning : variable "colActual" was declared but never referenced
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(320): warning : variable "colEncontrar" was declared but never referenced
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(414): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(420): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(426): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(433): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(439): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(445): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(464): warning : conversion from pointer to smaller integer
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(495): warning : conversion from pointer to smaller integer
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(508): warning : return type of function "main" must be "int"
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(564): warning : conversion from pointer to smaller integer
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(516): warning : variable "size" was declared but never referenced
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(518): warning : variable "terminado" was declared but never referenced
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(289): warning : conversion from pointer to smaller integer
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(294): warning : conversion from pointer to smaller integer
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(322): warning : conversion from pointer to smaller integer
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(414): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(420): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(426): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(433): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(439): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(445): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(464): warning : conversion from pointer to smaller integer
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(495): warning : conversion from pointer to smaller integer
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(508): warning : return type of function "main" must be "int"
+  
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(564): warning : conversion from pointer to smaller integer
+  
+  kernel.cu
+  device_functions.h is an internal header file and must not be used directly.  This file will be removed in a future CUDA release.  Please use cuda_runtime_api.h or cuda_runtime.h instead.
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(37): warning C4804: '<=': uso no seguro del tipo 'bool' en la operación
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(355): warning C4244: 'inicializando': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(379): warning C4244: 'inicializando': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(460): warning C4477: 'printf' : la cadena de formato '%d' requiere un argumento de tipo 'int', pero el argumento variádico 1 tiene el tipo 'int *'
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(460): warning C4313: 'printf': '%d' de la cadena de formato origina conflictos con el argumento 1 del tipo 'int *'
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(464): warning C4311: 'conversión de tipo': truncamiento de puntero de 'int *' a 'int'
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(464): warning C4302: 'conversión de tipo': truncamiento de 'int *' a 'int'
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(475): warning C4477: 'printf' : la cadena de formato '%d' requiere un argumento de tipo 'int', pero el argumento variádico 1 tiene el tipo 'int *'
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(475): warning C4313: 'printf': '%d' de la cadena de formato origina conflictos con el argumento 1 del tipo 'int *'
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(475): warning C4477: 'printf' : la cadena de formato '%d' requiere un argumento de tipo 'int', pero el argumento variádico 2 tiene el tipo 'int *'
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(475): warning C4313: 'printf': '%d' de la cadena de formato origina conflictos con el argumento 2 del tipo 'int *'
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(495): warning C4311: 'conversión de tipo': truncamiento de puntero de 'int *' a 'int'
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(495): warning C4302: 'conversión de tipo': truncamiento de 'int *' a 'int'
+C:/Users/yo/Desktop/Practica 1/Paradigmas-Avanzados-de-la-Programacion/.vs/practica parte 1/practica parte 1/kernel.cu(564): warning C4302: 'conversión de tipo': truncamiento de 'char *' a 'char'
+  practica parte 1.vcxproj -> C:\Users\yo\Desktop\Practica 1\Paradigmas-Avanzados-de-la-Programacion\.vs\practica parte 1\x64\Debug\practica parte 1.exe

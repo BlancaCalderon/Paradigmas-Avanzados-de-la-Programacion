@@ -34,7 +34,14 @@ void mostrarTablero(int* tablero, int numFilas, int numColumnas, int dificultad)
             int num = tablero[i * numFilas + j];
             if (num > dificultad)
             {
-                printf("%c  ", (char) num);
+                if (7 <= num <= 13)
+                {
+                    printf("RC%d  ", num%7);
+                }
+                else
+                {
+                    printf("%c  ", (char)num);
+                } 
             }
             else
             {
@@ -325,7 +332,7 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
          curand_init(dev_semilla, pos, 0, &state); //curand_init(semilla, secuencia, offset, estado) secuencia dgenera diferentes secuencias de numeros aleatorio a partir de la misma semilla y offset genera numeros aleatorio s a partir de una secuencia y una semilla  CurandState curandState;
          int color = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
          printf("Soy el hilo %d voy a actualizar el tablero \n ", pos);
-         char colorS = 'RC' + color;
+         int colorS = 10 + color;
          dev_tablero[pos_encontrar] = colorS;
      }
 
@@ -525,13 +532,43 @@ void main(int argc, char* argv[])
      int h_tablero[25] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,3,1,3,1,3,3,3,4,1,1,4,3};
    // int h_tablero[25] = { 3,2,1,5,5,3,3,6,7,3,9,3,'B',3,1,3,1,3,3,3,4,1,1,4,3 };
     //Mostramos el tablero
-    
-    printf("\nElija el modo de juego: A (Automatico) - M (Manual):  \n");
-    scanf("%c", &modoJuego);
-    printf("Modo de juego seleccionado: %c \n", modoJuego);
-    mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
 
-    while (vida > 0) {
+    //Codigo para ejecutar programa y recibir datos por comando
+    //Controla que no de error la llamada
+     if (argc == 1)  //No se ha ejecutado por comando
+     {
+         printf("\nElija el modo de juego: A (Automatico) - M (Manual):  \n");
+         scanf("%c", &modoJuego);
+         printf("Modo de juego seleccionado: %c \n", modoJuego);
+         mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
+     }
+
+    else if (argc == -1)
+    {
+        printf("ERROR en ejecucion\n");
+    }
+    //Controla que tengamos los argumentso encesarios (tipo de ejecucion, dificultad, filas, columnas)
+    else if (argc < 5)
+    {
+        printf("ERROR: faltan argumentos de entrada\n");
+        printf("%d \n", argc);
+    }
+    //Controlan que no se pasen mas argumentos de los deseados
+    else if(argc > 5)
+    {
+        printf("ERROR: sobran argumentos de entrada\n");
+    }
+    else //Realiza llamada con los 4 argumemtos
+    {
+        //Guarda los argumentos pasadas en las respectivas variables
+        modoJuego = (char)argv[1];
+        dificultad = std::stoi(argv[2]);    //Guarda valor argumentos usando funcion stoi para convertirlo a int
+        numFilas = std::stoi(argv[3]);
+        numColumnas = std::stoi(argv[4]);
+    }
+
+    while (vida > 0) 
+    {
         if (modoJuego == 'M' || modoJuego == 'm')
         {
             printf("\nIntroduzca las coordenadas del bloque que desea eliminar (x, y):  \n");

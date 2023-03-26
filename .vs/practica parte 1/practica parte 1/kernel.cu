@@ -509,8 +509,8 @@ void main(int argc, char* argv[])
 {
     //Declaracion variables
     //int* h_tablero;
-    int numFilas = 5;
-    int numColumnas = 5;
+    int numFilas = 3;
+    int numColumnas = 9;
     int coordenadaX;
     int coordenadaY;
     int size = numFilas * numColumnas;
@@ -529,7 +529,7 @@ void main(int argc, char* argv[])
     //Llamamos a la funcion que inicializa con valores aleatorios el tablero
     //h_tablero = inicializarTablero(h_tablero, size, dificultad);
     //int h_tablero[25] = { 3,3,3,3,4,3,3,4,3,1,4,3,'B',3,1,3,1,3,3,3,4,1,1,4,3};
-     int h_tablero[25] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,3,1,3,1,3,3,3,4,1,1,4,3};
+     int h_tablero[27] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,3,1,3,1,3,3,3,4,1,1,4,3,4,4};
    // int h_tablero[25] = { 3,2,1,5,5,3,3,6,7,3,9,3,'B',3,1,3,1,3,3,3,4,1,1,4,3 };
     //Mostramos el tablero
 
@@ -580,9 +580,17 @@ void main(int argc, char* argv[])
             coordenadaY = (rand() % numColumnas);
             printf("\nCoordenadas (%d, %d)  \n", coordenadaX, coordenadaY);
         }
+        if ((coordenadaX < numFilas) && (coordenadaY < numColumnas) && (coordenadaX >= 0) && (coordenadaY >= 0)) 
+        {
+            vida = encontrarCamino(h_tablero, numFilas, numColumnas, coordenadaX, coordenadaY, dificultad, vida);
+            printf("\nVida restante: %d \n", vida);
+        }
+        else
+        {
+            printf("\nLas coordenadas introducidas se encuentran fuera del rango del tablero [%d][%d] \n", numFilas, numColumnas);
+        }
         
-        vida = encontrarCamino(h_tablero, numFilas, numColumnas, coordenadaX, coordenadaY, dificultad, vida);
-        printf("\nVida restante: %d \n", vida);
+        
     }
     printf("\nPERDEDOR \n");
 }

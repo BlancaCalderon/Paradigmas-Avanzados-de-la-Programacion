@@ -68,7 +68,7 @@ __global__ void kernelBomba(int* dev_tablero, int numFila, int numCol, int pos_e
     int colBorrar = pos_encontrar - filaBorrar * numCol;
 
     //si posición actual esta en la fila o columna que queremos borrar
-    if (filaBorrar == filaActual || colBorrar == colActual && 0 <= filaActual <= numFila && 0 <= colActual <= numCol && (pos < numCol*numFila))
+    if (filaBorrar == filaActual || colBorrar == colActual && 0 <= filaActual <= numFila && 0 <= colActual <= numCol && (pos < numCol * numFila))
     {
         dev_tablero[pos] = -1; //Indicamos que se borra
     }
@@ -82,7 +82,7 @@ __global__ void kernelTNT(int* dev_tablero, int numFila, int numCol, int pos_enc
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;        //Posicion en la que nos encontramos
 
-    
+
     //Calcula fila y columna de la posición actual
     int filaActual = pos / numCol;
     int colActual = pos - filaActual * numCol;
@@ -107,7 +107,7 @@ __global__ void kernelTNT(int* dev_tablero, int numFila, int numCol, int pos_enc
     {
         dev_tablero[pos_encontrar] = -1;              //Eliminamos bloque especial
     }
-   
+
 }
 
 
@@ -123,7 +123,7 @@ __global__ void kernelRompeCabezas(int* dev_tablero, int numFila, int numCol, in
     //si posición actual tiene el color indicado se elimina
     if (dev_tablero[pos] == color && pos < (numCol * numFila))
     {
-       
+
         dev_tablero[pos] = -1; //Indicamos que se borra
     }
 
@@ -132,21 +132,30 @@ __global__ void kernelRompeCabezas(int* dev_tablero, int numFila, int numCol, in
     {
         dev_tablero[pos_encontrar] = -1;              //Eliminamos bloque especial
     }
-    
+
 }
 
 
 //Kernel que lleva a cabo la generacion del tablero de forma aleatoria
 __global__ void kernelGenerarTablero(int* dev_tablero, int dev_semilla, int dificultad, int numCol, int numFila)
 {
-    int pos = blockIdx.x * blockDim.x + threadIdx.x;        //Posicion en la que nos encontramos
-    if (pos <= numCol*numFila)
+    int col = (blockIdx.x * blockDim.x) + threadIdx.x;
+    int fila = (blockIdx.y * blockDim.y) + threadIdx.y;        //Posicion en la que nos encontramos
+
+    int pos = ((col * numFila) + fila);
+
+    if (numFila > col && numCol > fila)
     {
         printf("He entrado %d \n", pos);
         curandState_t state;
         curand_init(dev_semilla, pos, 0, &state); //curand_init(semilla, secuencia, offset, estado) secuencia dgenera diferentes secuencias de numeros aleatorio a partir de la misma semilla y offset genera numeros aleatorio s a partir de una secuencia y una semilla  CurandState curandState;
         dev_tablero[pos] = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
     }
+    else
+    {
+        printf("Me salgooo %d \n", pos);
+    }
+
 }
 
 __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int numCol, int dev_semilla, int dificultad, int* dev_index)
@@ -360,8 +369,8 @@ int* inicializarTablero(int* h_tablero, int size, int numCol, int numFila, int d
     cudaMemcpy(dev_Tablero, h_tablero, size * sizeof(int), cudaMemcpyHostToDevice);
 
     unsigned int semilla = time(NULL);
-    dim3 dimGrid(gridX * gridY);
-    dim3 dimBlock(hilosBloqueX * hilosBloqueY);
+    dim3 dimGrid(gridX, gridY);
+    dim3 dimBlock(hilosBloqueX ,hilosBloqueY);
     kernelGenerarTablero << <dimGrid, dimBlock >> > (dev_Tablero, semilla, dificultad, numCol, numFila);
 
     // Copiamos de la GPU a la CPU
@@ -403,8 +412,8 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
     cudaMemcpy(dev_index_RC, h_index_RC, sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(dev_encontrado, &h_encontrado, sizeof(bool), cudaMemcpyHostToDevice);
 
-    dim3 dimGrid(gridX * gridY);
-    dim3 dimBlock(hilosBloqueX * hilosBloqueY);
+    dim3 dimGrid(gridX, gridY);
+    dim3 dimBlock(hilosBloqueX, hilosBloqueY);
     //Segun si es alguno de los bloques especiales o es una jugada normal (66 --> B, 84 --> T,
     switch (h_tablero[pos_encontrar])
     {
@@ -554,7 +563,7 @@ void main(int argc, char* argv[])
     cudaMemcpyToSymbol(COLUMNAS, &numColumnas, sizeof(int));
 
     //Reservamos memoria para el tablero, ya que no esta inicializado
-     h_tablero = (int*)malloc(numFilas * numColumnas * sizeof(int));
+    h_tablero = (int*)malloc(numFilas * numColumnas * sizeof(int));
 
     //Llamamos a la funcion que inicializa con valores aleatorios el tablero
     h_tablero = inicializarTablero(h_tablero, size, numColumnas, numFilas, dificultad, hilosBloqueX, hilosBloqueY, gridX, gridY);
@@ -563,7 +572,7 @@ void main(int argc, char* argv[])
     // int h_tablero[25] = { 3,2,1,5,5,3,3,6,7,3,9,3,'B',3,1,3,1,3,3,3,4,1,1,4,3 };
      //Mostramos el tablero
 
-    
+
 
      //Codigo para ejecutar programa y recibir datos por comando
      //Controla que no de error la llamada
@@ -597,8 +606,8 @@ void main(int argc, char* argv[])
         dificultad = std::stoi(argv[2]);    //Guarda valor argumentos usando funcion stoi para convertirlo a int
         numFilas = std::stoi(argv[3]);
         numColumnas = std::stoi(argv[4]);
-       
-    }   
+
+    }
     if (hilosBloqueX >= maxBlockx && hilosBloqueY >= maxBlocky && gridX > maxGridX && gridY > maxGridY)
     {
         printf("\nSe sobrepasan las dimensiones asociadas a la tarjeta grafica  \n");
@@ -633,7 +642,7 @@ void main(int argc, char* argv[])
         }
         printf("\nPERDEDOR \n");
     }
-    
+
 }
 
 

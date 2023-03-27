@@ -1,1 +1,100 @@
-﻿  Parte2.vcxproj -> C:\Users\Raquel\source\repos\Parte2\x64\Debug\Parte2.exe
+﻿  Compiling CUDA source file kernel.cu...
+  
+  C:\Users\Raquel\Documents\Ingenieria informatica\3º Curso\Paradigmas Avanzados Programación\PECL1\Paradigmas-Avanzados-de-la-Programacion\Parte2\Parte2>"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\bin\nvcc.exe" -gencode=arch=compute_30,code=\"sm_30,compute_30\" --use-local-env -ccbin "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC\14.29.30133\bin\HostX86\x64" -x cu  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\include"  -G   --keep-dir x64\Debug -maxrregcount=0  --machine 64 --compile -cudart static  -g   -DWIN32 -DWIN64 -D_DEBUG -D_CONSOLE -D_MBCS -Xcompiler "/EHsc /W3 /nologo /Od /Fdx64\Debug\vc142.pdb /FS /Zi /RTC1 /MDd " -o x64\Debug\kernel.cu.obj "C:\Users\Raquel\Documents\Ingenieria informatica\3º Curso\Paradigmas Avanzados Programación\PECL1\Paradigmas-Avanzados-de-la-Programacion\Parte2\Parte2\kernel.cu" 
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(121): warning : variable "colActual" was declared but never referenced
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(161): warning : variable "colActual" was declared but never referenced
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(210): warning : variable "posSigFila" was declared but never referenced
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(212): warning : variable "col_actual" was declared but never referenced
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(191): warning : variable "colActual" was declared but never referenced
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(193): warning : variable "tablero_compartido" was declared but never referenced
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(298): warning : conversion from pointer to smaller integer
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(303): warning : conversion from pointer to smaller integer
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(331): warning : conversion from pointer to smaller integer
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(325): warning : variable "colActual" was declared but never referenced
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(329): warning : variable "colEncontrar" was declared but never referenced
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(423): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(429): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(435): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(442): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(448): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(454): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(473): warning : conversion from pointer to smaller integer
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(504): warning : conversion from pointer to smaller integer
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(517): warning : return type of function "main" must be "int"
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(596): warning : conversion from pointer to smaller integer
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(527): warning : variable "terminado" was declared but never referenced
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(532): warning : variable "nombre" was declared but never referenced
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(533): warning : variable "maxThreadsPerBlock" was declared but never referenced
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(534): warning : variable "maxThreadsSM" was declared but never referenced
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(298): warning : conversion from pointer to smaller integer
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(303): warning : conversion from pointer to smaller integer
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(331): warning : conversion from pointer to smaller integer
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(423): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(429): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(435): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(442): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(448): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(454): warning : multicharacter character literal (potential portability problem)
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(473): warning : conversion from pointer to smaller integer
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(504): warning : conversion from pointer to smaller integer
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(517): warning : return type of function "main" must be "int"
+  
+C:/Users/Raquel/Documents/Ingenieria informatica/3║ Curso/Paradigmas Avanzados Programaci¾n/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(596): warning : conversion from pointer to smaller integer
+  
+  kernel.cu
+  device_functions.h is an internal header file and must not be used directly.  This file will be removed in a future CUDA release.  Please use cuda_runtime_api.h or cuda_runtime.h instead.
+C:/Users/Raquel/Documents/Ingenieria informatica/3º Curso/Paradigmas Avanzados Programación/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(37): warning C4804: '<=': uso no seguro del tipo 'bool' en la operación
+C:/Users/Raquel/Documents/Ingenieria informatica/3º Curso/Paradigmas Avanzados Programación/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(362): warning C4244: 'inicializando': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
+C:/Users/Raquel/Documents/Ingenieria informatica/3º Curso/Paradigmas Avanzados Programación/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(388): warning C4244: 'inicializando': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
+C:/Users/Raquel/Documents/Ingenieria informatica/3º Curso/Paradigmas Avanzados Programación/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(469): warning C4477: 'printf' : la cadena de formato '%d' requiere un argumento de tipo 'int', pero el argumento variádico 1 tiene el tipo 'int *'
+C:/Users/Raquel/Documents/Ingenieria informatica/3º Curso/Paradigmas Avanzados Programación/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(469): warning C4313: 'printf': '%d' de la cadena de formato origina conflictos con el argumento 1 del tipo 'int *'
+C:/Users/Raquel/Documents/Ingenieria informatica/3º Curso/Paradigmas Avanzados Programación/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(473): warning C4311: 'conversión de tipo': truncamiento de puntero de 'int *' a 'int'
+C:/Users/Raquel/Documents/Ingenieria informatica/3º Curso/Paradigmas Avanzados Programación/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(473): warning C4302: 'conversión de tipo': truncamiento de 'int *' a 'int'
+C:/Users/Raquel/Documents/Ingenieria informatica/3º Curso/Paradigmas Avanzados Programación/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(484): warning C4477: 'printf' : la cadena de formato '%d' requiere un argumento de tipo 'int', pero el argumento variádico 1 tiene el tipo 'int *'
+C:/Users/Raquel/Documents/Ingenieria informatica/3º Curso/Paradigmas Avanzados Programación/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(484): warning C4313: 'printf': '%d' de la cadena de formato origina conflictos con el argumento 1 del tipo 'int *'
+C:/Users/Raquel/Documents/Ingenieria informatica/3º Curso/Paradigmas Avanzados Programación/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(484): warning C4477: 'printf' : la cadena de formato '%d' requiere un argumento de tipo 'int', pero el argumento variádico 2 tiene el tipo 'int *'
+C:/Users/Raquel/Documents/Ingenieria informatica/3º Curso/Paradigmas Avanzados Programación/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(484): warning C4313: 'printf': '%d' de la cadena de formato origina conflictos con el argumento 2 del tipo 'int *'
+C:/Users/Raquel/Documents/Ingenieria informatica/3º Curso/Paradigmas Avanzados Programación/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(504): warning C4311: 'conversión de tipo': truncamiento de puntero de 'int *' a 'int'
+C:/Users/Raquel/Documents/Ingenieria informatica/3º Curso/Paradigmas Avanzados Programación/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(504): warning C4302: 'conversión de tipo': truncamiento de 'int *' a 'int'
+C:/Users/Raquel/Documents/Ingenieria informatica/3º Curso/Paradigmas Avanzados Programación/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(546): warning C4244: 'inicializando': conversión de 'float' a 'int'; posible pérdida de datos
+C:/Users/Raquel/Documents/Ingenieria informatica/3º Curso/Paradigmas Avanzados Programación/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(547): warning C4244: 'inicializando': conversión de 'float' a 'int'; posible pérdida de datos
+C:/Users/Raquel/Documents/Ingenieria informatica/3º Curso/Paradigmas Avanzados Programación/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(548): warning C4244: 'inicializando': conversión de 'float' a 'int'; posible pérdida de datos
+C:/Users/Raquel/Documents/Ingenieria informatica/3º Curso/Paradigmas Avanzados Programación/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(549): warning C4244: 'inicializando': conversión de 'float' a 'int'; posible pérdida de datos
+C:/Users/Raquel/Documents/Ingenieria informatica/3º Curso/Paradigmas Avanzados Programación/PECL1/Paradigmas-Avanzados-de-la-Programacion/Parte2/Parte2/kernel.cu(596): warning C4302: 'conversión de tipo': truncamiento de 'char *' a 'char'
+  Parte2.vcxproj -> C:\Users\Raquel\Documents\Ingenieria informatica\3º Curso\Paradigmas Avanzados Programación\PECL1\Paradigmas-Avanzados-de-la-Programacion\Parte2\x64\Debug\Parte2.exe

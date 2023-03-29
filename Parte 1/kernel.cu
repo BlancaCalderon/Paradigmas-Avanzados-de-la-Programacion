@@ -184,18 +184,17 @@ __global__ void kernelEncontrarCaminos(int* dev_tablero, int numFila, int numCol
     int filaActual = pos / numCol;
     int colActual = pos - filaActual * numCol;
     int ultima_posicion = pos;
-    printf("POS actual %d, Pos encontrar %d\n, colorrr %d", pos, pos_encontrar, color);
 
     if ((dev_tablero[pos] == color || dev_tablero[pos] == -1) && pos_encontrar == pos)
     {
-        printf("POS A ENCONTRAR %d \n", pos_encontrar);
+        //printf("POS A ENCONTRAR %d \n", pos_encontrar);
         encontrado = false;
         posAux = pos;
         //   printf("\nHilo numero %d - posicion auxiliar inicial %d \n", pos, posAux);
 
         while ((posAux < numCol * numFila) && !encontrado && !camino_invalido)
         {
-            printf("Entrooooo \n");
+            //printf("Entrooooo \n");
             int sigfila = (posAux + 1) / numCol;                 //Fila en la que se encuentra el siguiente elemento
             int sigcol = (posAux + 1) - sigfila * numCol;       //Columna en la que se encuentra el siguiente elemento
 
@@ -440,19 +439,33 @@ int* encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int
     {
         int cont = 0;
         //Desde posición idicada se encuentran todos los caminos con el mismo color
-        while (h_encontrado)
+        while (cont < numColumnas * numFilas)
         {
             printf("contador %d \n", cont);
-            kernelEncontrarCaminos << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, dev_index, pos_encontrar, dev_encontrado, color);
-            cudaMemcpy(&h_encontrado, dev_encontrado, sizeof(bool), cudaMemcpyDeviceToHost);
-            cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
-            cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
-            printf("Valor del puntero %d \n", h_encontrado);
-            printf("H_inxex %d\n", h_index);
-            cont += 1;
+            while (h_encontrado)
+            {
+                
+                kernelEncontrarCaminos << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, dev_index, pos_encontrar, dev_encontrado, color);
+                cudaMemcpy(&h_encontrado, dev_encontrado, sizeof(bool), cudaMemcpyDeviceToHost);
+                cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
+                cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
+                printf("Valor del puntero %d \n", h_encontrado);
+                printf("H_inxex %d\n", h_index);
+                //mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
+            }
 
-            mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
+            if (h_tablero[cont] == -1)
+            {
+                kernelEncontrarCaminos << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, dev_index, cont, dev_encontrado, color);
+                cudaMemcpy(&h_encontrado, dev_encontrado, sizeof(bool), cudaMemcpyDeviceToHost);
+                cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
+                cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
+               // mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
+            }
+            cont += 1;
         }
+        mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
+        
         if ((int)h_index == 0 && vida >= 1)
         {
             vida = vida - 1;
@@ -501,8 +514,8 @@ int* encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int
 void main(int argc, char* argv[])
 {
     //Declaracion variables
-    int* h_tablero;
-    int numFilas = 7;
+    //int* h_tablero;
+    int numFilas = 3;
     int numColumnas = 9;
     int coordenadaX;
     int coordenadaY;
@@ -517,10 +530,11 @@ void main(int argc, char* argv[])
     cudaMemcpyToSymbol(COLUMNAS, &numColumnas, sizeof(int));
 
     //Reservamos memoria para el tablero, ya que no esta inicializado
-    h_tablero = (int*)malloc(numFilas * numColumnas * sizeof(int));
+    //h_tablero = (int*)malloc(numFilas * numColumnas * sizeof(int));
 
     //Llamamos a la funcion que inicializa con valores aleatorios el tablero
-    h_tablero = inicializarTablero(h_tablero, size, dificultad);
+   // h_tablero = inicializarTablero(h_tablero, size, dificultad);
+    int h_tablero[27] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,3,3,3,4,3,3,3,4,3,3,4,3,4,4 };
     //int h_tablero[27] = { 3,3,3,3,4,3,3,4,4,1,4,4,1,3,1,3,1,3,3,3,4,1,1,4,3 };
     //  int h_tablero[27] = { 3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,1,1,4,4,4,4 };
     //  mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
@@ -576,7 +590,7 @@ void main(int argc, char* argv[])
         }
         if ((coordenadaX < numFilas) && (coordenadaY < numColumnas) && (coordenadaX >= 0) && (coordenadaY >= 0))
         {
-            h_tablero = encontrarCamino(h_tablero, numFilas, numColumnas, coordenadaX, coordenadaY, dificultad, vida);
+            encontrarCamino(h_tablero, numFilas, numColumnas, coordenadaX, coordenadaY, dificultad, vida);
             printf("\nVida restante: %d \n", vida);
             mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
         }

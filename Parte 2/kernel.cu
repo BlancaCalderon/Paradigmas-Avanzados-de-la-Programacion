@@ -504,21 +504,34 @@ int* encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int
     }
     else //Si es bloque simple
     {
-        int cont = 0;
+       int cont = 0;
         //Desde posición idicada se encuentran todos los caminos con el mismo color
-        while (h_encontrado)
+        while (cont < numColumnas * numFilas)
         {
             printf("contador %d \n", cont);
-            kernelEncontrarCaminos << <dimGrid, dimBlock >> > (dev_Tablero, numFilas, numColumnas, dev_index, pos_encontrar, dev_encontrado, color);
-            cudaMemcpy(&h_encontrado, dev_encontrado, sizeof(bool), cudaMemcpyDeviceToHost);
-            cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
-            cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
-            printf("Valor del puntero %d \n", h_encontrado);
-            printf("H_inxex %d\n", h_index);
-            cont += 1;
+            while (h_encontrado)
+            {
+                
+                kernelEncontrarCaminos << <dimGrid, dimBlock >> > (dev_Tablero, numFilas, numColumnas, dev_index, pos_encontrar, dev_encontrado, color);
+                cudaMemcpy(&h_encontrado, dev_encontrado, sizeof(bool), cudaMemcpyDeviceToHost);
+                cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
+                cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
+                printf("Valor del puntero %d \n", h_encontrado);
+                printf("H_inxex %d\n", h_index);
+                //mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
+            }
 
-            mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
+            if (h_tablero[cont] == -1)
+            {
+                kernelEncontrarCaminos << <dimGrid, dimBlock >> > (dev_Tablero, numFilas, numColumnas, dev_index, cont, dev_encontrado, color);
+                cudaMemcpy(&h_encontrado, dev_encontrado, sizeof(bool), cudaMemcpyDeviceToHost);
+                cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
+                cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
+               // mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
+            }
+            cont += 1;
         }
+        mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
         if ((int)h_index == 0 && vida >= 1)
         {
             vida = vida - 1;

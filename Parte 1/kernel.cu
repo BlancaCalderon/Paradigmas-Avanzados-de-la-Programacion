@@ -205,7 +205,7 @@ __global__ void kernelEncontrarCaminos(int* dev_tablero, int numFila, int numCol
             int fila_actual = posAux / numCol;
             int col_actual = posAux - fila_actual * numCol;
 
-            if (color == dev_tablero[posAux + 1] && sigcol >= 0 && (posAux + 1) != ultima_posicion)          //Nos desplazamos a la derecha
+            if (color == dev_tablero[posAux + 1] && sigcol > 0 && (posAux + 1) != ultima_posicion)          //Nos desplazamos a la derecha
             {
 
                 printf("\nAvanza a la pos DERECHA [%d] hilo %d", posAux, pos);
@@ -225,7 +225,7 @@ __global__ void kernelEncontrarCaminos(int* dev_tablero, int numFila, int numCol
 
                 dev_tablero[posAux] = -1;
             }
-            else if (color == dev_tablero[posAux - 1] && col_anterior >= 0 && (posAux - 1) != ultima_posicion)           //Izquierda
+            else if (color == dev_tablero[posAux - 1] && col_anterior >= 0 && col_anterior < (numCol - 1) && (posAux - 1) != ultima_posicion)           //Izquierda
             {
                 index += 1;
                 ultima_posicion = posAux;

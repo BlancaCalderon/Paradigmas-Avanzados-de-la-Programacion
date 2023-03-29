@@ -23,13 +23,16 @@ void mostrarTablero(int* tablero, int numFilas, int numColumnas, int dificultad)
 {
     int N = numFilas;
     int M = numColumnas;
-    if (numColumnas > numFilas) {
+
+    if (numFilas > numColumnas) {
         N = numColumnas;
         M = numFilas;
-    }
-    for (int i = 0; i < M; i++)
+    } 
+
+    printf("Mostrar tablero - Valor de N = %d \n ", N);
+    for (int i = 0; i < numFilas; i++)
     {
-        for (int j = 0; j < N; j++)
+        for (int j = 0; j < numColumnas; j++)
         {
             // printf("%d  ", tablero[i * N + j]);
 
@@ -69,27 +72,32 @@ __global__ void kernelGenerarTablero(int* dev_tablero, int dev_semilla, int difi
     int N = numFila;
     int dim = blockDim.x;
 
+    int pos = ((col * N) + fila);
     if (numCol > numFila)
     {
         N = numCol;
         dim = blockDim.y;
+        pos = ((fila * N) + col);
         //id = blockIdx.y * dim + threadIdx.y;
     }
-    int pos = ((col * N) + fila);
+
+    
     int id = threadIdx.x * dim + threadIdx.y;
+    id = threadIdx.y * dim + threadIdx.x;
     int tamX = numFila;
 
+    printf(" F[%d] C[%d] dim(%d, %d) | id = %d | pos = %d\n", fila, col,numFila, numCol, id, pos);
     // __shared__ int t_compartido[hilosBl];
     __shared__ int t_compartido[2* 5];
-    printf("Dimension X %d - Dimension Y %d - [%d] > [%d] && [%d] > [%d]\n", blockDim.x, blockDim.y, numFila, col, numCol, fila);
-    if (numFila > col && numCol > fila)
+  //  printf("Dimension X %d - Dimension Y %d - [%d] > [%d] && [%d] > [%d]\n", blockDim.x, blockDim.y, numFila, col, numCol, fila);
+    if (numFila > fila && numCol > col)
     {
         printf("Nº Bloque (%d, %d) hilo %d pos en memoria COMPARTIDA %d \n", blockIdx.x, blockIdx.y, pos, id);// blockIdx.x* dim + threadIdx.x, blockIdx.y* dim + threadIdx.y);
         curandState_t state;
         curand_init(dev_semilla, pos, 0, &state); //curand_init(semilla, secuencia, offset, estado) secuencia dgenera diferentes secuencias de numeros aleatorio a partir de la misma semilla y offset genera numeros aleatorio s a partir de una secuencia y una semilla  CurandState curandState;
        // dev_tablero[pos] = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
         t_compartido[id] = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
-        printf("Holaaaa Id; %d /n", id);
+      //  printf("Holaaaa Id; %d /n", id);
         //t_compartido[threadIdx.y * dim + threadIdx.x] = 1;
 //t_compartido[0] = 1;
         printf("Valor en memoria COMPARTIDA %d\n", t_compartido[id]);
@@ -658,24 +666,45 @@ void main(int argc, char* argv[])
     printf("Dimensiones maximas para organizar los hilos en bloques (%d, %d, %d):\n", deviceProp.maxThreadsDim[0], deviceProp.maxThreadsDim[1], deviceProp.maxThreadsDim[2]);
     printf("Dimensiones maximas para organizar los bloques en el grid (%d, %d, %d):\n", deviceProp.maxGridSize[0], deviceProp.maxGridSize[1], deviceProp.maxGridSize[2]);
 
-    int hilosBloqueX = ceil(numFilas / (float)2);
+    /*
+    * int hilosBloqueX = ceil(numFilas / (float)2);
     int hilosBloqueY = ceil(numColumnas / (float)2);
     int gridX = ceil(numFilas / (float)hilosBloqueX);
     int gridY = ceil(numColumnas / (float)hilosBloqueY);
-    printf("dimBlock(%d, %d), dimGrid(%d, %d): ", hilosBloqueX, hilosBloqueY, gridX, gridY);
+    if (numColumnas > numFilas) {
+        hilosBloqueX = ceil(numColumnas / (float)2);
+        hilosBloqueY = ceil(numFilas / (float)2);
+        gridX = ceil(numColumnas / (float)hilosBloqueX);
+        gridY = ceil(numFilas / (float)hilosBloqueY);
+    }
+    */
+    
+    int hilosBloqueX = ceil(numColumnas / (float)2);
+    int hilosBloqueY = ceil(numFilas / (float)2);
+    int gridX = ceil(numColumnas / (float)hilosBloqueX);
+    int gridY = ceil(numFilas / (float)hilosBloqueY);
 
+    /*
+    if (numColumnas > numFilas) {
+        hilosBloqueX = ceil(numFilas / (float)2);
+        hilosBloqueY = ceil(numColumnas / (float)2);
+        gridX = ceil(numFilas / (float)hilosBloqueX);
+        gridY = ceil(numColumnas / (float)hilosBloqueY);
+    }
+    */
+    printf("dimBlock(%d, %d), dimGrid(%d, %d): ", hilosBloqueX, hilosBloqueY, gridX, gridY);
     //Pasamos a memoria constante el numero de filas y columnas introducidas por el usuario
     cudaMemcpyToSymbol(FILAS, &numFilas, sizeof(int));
     cudaMemcpyToSymbol(COLUMNAS, &numColumnas, sizeof(int));
 
     //Reservamos memoria para el tablero, ya que no esta inicializado
-  //  int* h_tablero = (int*)malloc(numFilas * numColumnas * sizeof(int));
+    int* h_tablero = (int*)malloc(numFilas * numColumnas * sizeof(int));
 
     //Llamamos a la funcion que inicializa con valores aleatorios el tablero
-  //  h_tablero = inicializarTablero(h_tablero, size, numColumnas, numFilas, dificultad, hilosBloqueX, hilosBloqueY, gridX, gridY);
+    h_tablero = inicializarTablero(h_tablero, size, numColumnas, numFilas, dificultad, hilosBloqueX, hilosBloqueY, gridX, gridY);
     //int h_tablero[25] = { 3,3,3,3,4,3,3,4,3,1,4,3,'B',3,1,3,1,3,3,3,4,1,1,4,3};
    //int h_tablero[27] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,3,3,3,4,3,3,3,4,3,3,4,3,4,4 };
-    int h_tablero[27] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,'B',3,3,4,3,3,3,4,3,3,4,3,4,4};
+   // int h_tablero[27] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,'B',3,3,4,3,3,3,4,3,3,4,3,4,4};
     // int h_tablero[25] = { 3,2,1,5,5,3,3,6,7,3,9,3,'B',3,1,3,1,3,3,3,4,1,1,4,3 };
      //Mostramos el tablero
 

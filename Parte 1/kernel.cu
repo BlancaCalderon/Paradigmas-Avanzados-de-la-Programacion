@@ -14,6 +14,14 @@
 
 int vida = 5;
 
+//Genera una semilla aleatoria para cada hilo
+int generarSemilla()
+{
+    curandState_t state;
+    int semilla = time(NULL) * 3663828372 + 12345 + rand();
+    return semilla;
+}
+
 //Funcion que muestra el tablero por consola
 void mostrarTablero(int* tablero, int numFilas, int numColumnas, int dificultad)
 {
@@ -96,7 +104,7 @@ __global__ void kernelTNT(int* dev_tablero, int numFila, int numCol, int pos_enc
     int colBorrarArriba = colBorrar - 4;
 
     //si posición actual es adyacente y esta dentro del rango que queremos borrar (4)
-    if (filaBorrarIzq <= filaActual && filaActual <= filaBorrarDer && colBorrarArriba <= colActual && colActual <= colBorrarAbajo && 0 <= filaActual && filaActual < numFila && 0 <= colActual  && colActual < numCol && pos < (numCol * numFila))
+    if (filaBorrarIzq <= filaActual <= filaBorrarDer && colBorrarArriba <= colActual <= colBorrarAbajo && 0 <= filaActual <= numFila && 0 <= colActual <= numCol)
     {
         dev_tablero[pos] = -1; //Indicamos que se borra
     }
@@ -251,9 +259,6 @@ __global__ void kernelEncontrarCaminos(int* dev_tablero, int numFila, int numCol
     {
         dev_tablero[pos_encontrar] = -1;              //Establecemos la posicion a encontrar en -1
     }
-
-
-
 }
 
 __global__ void kernelEncontrarBomba(int* dev_tablero, int numFila, int numCol, int pos_encontrar, int* dev_index_fila, int* dev_index_col)
@@ -329,6 +334,7 @@ __global__ void kernelEncontrarRompecabezasTNT(int* dev_tablero, int numFila, in
 int* inicializarTablero(int* h_tablero, int size, int dificultad)
 {
     int* (dev_Tablero);
+    unsigned int semilla;
 
     //Reservar espacio en memoria para GPU (2 matrices y matriz resultado)
     cudaMalloc((void**)&dev_Tablero, size * sizeof(int));
@@ -338,8 +344,9 @@ int* inicializarTablero(int* h_tablero, int size, int dificultad)
 
     dim3 threadsInBlock(size);
 
-    unsigned int semilla = time(NULL);
-    kernelGenerarTablero << <1, threadsInBlock >> > (dev_Tablero, semilla, dificultad);
+    int dev_semilla = generarSemilla();
+
+    kernelGenerarTablero << <1, threadsInBlock >> > (dev_Tablero, dev_semilla, dificultad);
 
     // Copiamos de la GPU a la CPU
     cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
@@ -361,7 +368,7 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
     int* h_index_fila = { 0 };
     int* h_index_RC = { 0 };
     int pos_encontrar = coordX * numFilas + coordY;   //Posicion a ENCONTRAR en el vector 1D
-    unsigned int semilla = time(NULL);
+    int semilla = generarSemilla();
 
     if (numColumnas > numFilas) //Si matriz asimetrica con mas columnas que filas
     {
@@ -457,6 +464,7 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
     //Bucle para reemplazar las posiciones eliminadas mientras que se pueda hacer algun cambio y si no termine
     while (iteraciones > 0)
     {
+        semilla = generarSemilla();
         kernelReemplazarPosiciones << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, semilla, dificultad, dev_index);
         cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
@@ -499,8 +507,10 @@ void main(int argc, char* argv[])
         printf("Modo de juego seleccionado: %c \n", modoJuego);
         printf("\nIntroduzca el numero de filas que tendra el tablero:  \n");
         scanf("%d", &numFilas);
+        printf("NUMERO FILAS %d \n", numFilas);
         printf("\nIntroduzca el numero de columnas que tendra el tablero:  \n");
         scanf("%d", &numColumnas);
+        printf("NUMERO COLUMNAS %d \n", numColumnas);
         printf("\nIntroduzca la dificultad del juego:  \n");
         scanf("%d", &dificultad);
     }

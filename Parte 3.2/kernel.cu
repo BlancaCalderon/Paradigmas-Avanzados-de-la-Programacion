@@ -41,8 +41,6 @@ void mostrarTablero(int* tablero, int numFilas, int numColumnas, int dificultad)
     {
         for (int j = 0; j < numColumnas; j++)
         {
-            // printf("%d  ", tablero[i * N + j]);
-
             int num = tablero[i * N + j];
             if (num > dificultad)
             {
@@ -213,7 +211,6 @@ __global__ void kernelTNT(int* dev_tablero, int numFila, int numCol, int pos_enc
         //si posición actual es adyacente y esta dentro del rango que queremos borrar (4)
         if (filaBorrarIzq <= filaActual && filaActual <= filaBorrarDer && colBorrarArriba <= colActual && colActual <= colBorrarAbajo && 0 <= filaActual && filaActual < numFila && 0 <= colActual && colActual < numCol && pos < (numCol * numFila))
         {
-            printf("Hilo %d | id=%d | tablero compartido = %d | tablero normal = %d\n", pos, id, t_compartido[id], dev_tablero[pos]);
             t_compartido[id] = -1; //Indicamos que se borra
             mem_compartida = true;
         }
@@ -282,12 +279,6 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
     int col = (blockIdx.x * blockDim.x) + threadIdx.x;
     int fila = (blockIdx.y * blockDim.y) + threadIdx.y;        //Posicion en la que nos encontramos
 
-    int sig_bloqueX = (blockIdx.x + 1) * blockDim.x;            //Posicion inicial de la columna del siguiente hilo del siguiente bloque
-    int sig_bloqueY = (blockIdx.y + 1) * blockDim.y;            //Posicion inicial de la fila del siguiente hilo en el siguiente bloque
-
-    int bloqueX = blockIdx.x * blockDim.x;                      // //Posicion inicial de la columna del primer hilo del blqoue actual
-    int bloqueY = blockIdx.y * blockDim.y;                      //Posicion inicial de la fila del primer hilo del blqoue actual
-
     int N = numFila;
     int dim = blockDim.x;
     int pos = ((col * N) + fila);
@@ -338,30 +329,37 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
         __syncthreads();
         int filaActual = pos / numCol;
         int colActual = pos - filaActual * numCol;
-
+        bool mem = false;
+        bool mem_compartida = false;
         if (bloque_arriba_y == bloque_fila_actual)
         {
-            if (t_compartido[id] == -1) {
-                if ((id - TESELAX) > 0 && (id * (TESELAX)+threadIdx.x) < numCol && (id * TESELAY + threadIdx.y) < numFila)
+            
+            if (t_compartido[id] == -1)
+            {
+                printf("Hilo %d en el mismo bloque, con id %d = %d \n", pos, id, t_compartido[id]);
+                if ((id - TESELAX) > 0) //&& ((id - TESELAX)* (TESELAX)+threadIdx.x) < numCol && (id * TESELAY + threadIdx.y) < numFila)
                 {
-                    if (filaActual > 0 && filaActual <= numFila && t_compartido[id - TESELAX] != -1 && (id - TESELAX) > 0)
+                    printf("Hilo %d = %d \n", pos, t_compartido[id]);
+                    if (t_compartido[id - TESELAX] != -1)
                     {
+                        printf("SUSTITUYOOO %d por %d \n", t_compartido[id],t_compartido[id - TESELAX]);
                         t_compartido[id] = t_compartido[id - TESELAX];
                         t_compartido[id - TESELAX] = -1;
                         atomicAdd(&dev_index[0], 1);
+                        mem = true;
+                        mem_compartida = true;
                     }
                     else if (t_compartido[id - TESELAX] != -1)
                     {
+                        printf("Soyyyyy %d \n", pos);
                         curandState_t state;
                         curand_init(dev_semilla, pos, 0, &state);                   //curand_init(semilla, secuencia, offset, estado) secuencia dgenera diferentes secuencias de numeros aleatorio a partir de la misma semilla y offset genera numeros aleatorio s a partir de una secuencia y una semilla  CurandState curandState;
                         int color = abs((int)(curand(&state) % dificultad) + 1);    //Rellena tablero con numeros aleatorios entre 1 y 6
                         t_compartido[id] = color;
                         atomicAdd(&dev_index[0], 1);
+                        mem_compartida = true;
                     }
-                    if (t_compartido[id - TESELAX] == -1)
-                    {
-                        dev_tablero[pos - numCol] = t_compartido[id - TESELAX];
-                    }
+                    
                 }
                 else
                 {
@@ -370,19 +368,31 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
                     int color = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
                     t_compartido[id] = color;
                     atomicAdd(&dev_index[0], 1);
+                    mem_compartida = true;
                 }
             }
             __syncthreads();
+            if (mem)
+            {
+                dev_tablero[pos - numCol] = t_compartido[id - TESELAX];
+            }
 
-            dev_tablero[pos] = t_compartido[id];
+            if (mem_compartida == true) {
+                dev_tablero[pos] = t_compartido[id];
+            }
+            
         }
         else if (dev_tablero[pos] == -1)
         {
+            
             if (filaActual > 0 && filaActual <= numFila && dev_tablero[pos - numCol] != -1)
             {
+                
                 dev_tablero[pos] = dev_tablero[pos - numCol];
                 dev_tablero[pos - numCol] = -1;
                 atomicAdd(&dev_index[0], 1);
+                printf("Hilo %d = %d distinto bloque tablero[%d]= %d\n", pos, t_compartido[id], pos-numCol, dev_tablero[pos - numCol]);
+
             }
             else if (dev_tablero[pos - numCol] != -1)
             {
@@ -393,6 +403,7 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
                 atomicAdd(&dev_index[0], 1);
             }
         }
+        printf("tablero[%d]= %d\n", pos,dev_tablero[pos]);
 
     }
 
@@ -944,7 +955,7 @@ void main(int argc, char* argv[])
 
     
    // int h_tablero[16] = { 3,3,3,3,4,3,3,4,3,1,4,3,'B',3,1,3};
-   //int h_tablero[27] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,3,3,3,4,3,3,3,4,3,3,4,3,4,4 };
+  // int h_tablero[27] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,3,3,3,4,3,3,3,4,3,3,4,3,4,4 };
     //int h_tablero[27] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,'T',3,3,4,3,3,3,4,3,3,4,3,4,'T' };
     // int h_tablero[25] = { 3,2,1,5,5,3,3,6,7,3,9,3,'B',3,1,3,1,3,3,3,4,1,1,4,3 };
      //Mostramos el tablero
@@ -992,13 +1003,16 @@ void main(int argc, char* argv[])
     }
     size = numFilas * numColumnas;
 
-    //Calcula bloques e hilos optimos para el tamaño de nuestra matriz
-    int hilosBloqueX = ceil(numColumnas / (float)2);
-    int hilosBloqueY = ceil(numFilas / (float)2);
+   int hilosBloqueX = ceil(numColumnas / (float)2);
+   int hilosBloqueY = ceil(numFilas / (float)2);
+    if (numColumnas > TESELAX && numFilas > TESELAY) {
+        hilosBloqueX = ceil(numColumnas / TESELAX);
+        hilosBloqueY = ceil(numFilas / TESELAY);
+    }
     int gridX = ceil(numColumnas / (float)hilosBloqueX);
     int gridY = ceil(numFilas / (float)hilosBloqueY);
 
-
+    printf("dimBlock(%d, %d), dimGrid(%d, %d): ", hilosBloqueX, hilosBloqueY, gridX, gridY);
     //Pasamos a memoria constante el numero de filas y columnas introducidas por el usuario
 
     //Reservamos memoria para el tablero, ya que no esta inicializado

@@ -13,14 +13,17 @@
 
 
 //define numero de filas y columnas del tablero (CUIDADO CAMBIAR A COGER POR CONSOLA QUE FILAS SE QUIERE)
-__constant__ int* FILAS;
-__constant__ int* COLUMNAS;
 int vida = 5;
-__constant__ int hiloX;
 const int TESELAX = 5;
 const int TESELAY = 2;
-const int N_FILAS = 5;
-const int M_COLUMNA = 2;
+
+//Genera una semilla aleatoria para cada hilo
+int generarSemilla()
+{
+    curandState_t state;
+    int semilla = time(NULL) * 3663828372 + 12345 + rand();
+    return semilla;
+}
 
 //Funcion que muestra el tablero por consola
 void mostrarTablero(int* tablero, int numFilas, int numColumnas, int dificultad)
@@ -79,27 +82,15 @@ __global__ void kernelGenerarTablero(int* dev_tablero, int dev_semilla, int difi
         dim = blockDim.y;
         pos = ((fila * N) + col);
     }
-    int id = threadIdx.x * dim + threadIdx.y;
-    id = threadIdx.y * dim + threadIdx.x;
-    int tamX = numFila;
-
-    // printf(" F[%d] C[%d] dim(%d, %d) | id = %d | pos = %d\n", fila, col,numFila, numCol, id, pos);
+    int id = threadIdx.y * dim + threadIdx.x;
 
     __shared__ int t_compartido[TESELAX * TESELAY];
 
-    int sig_bloqueX = (blockIdx.x + 1) % blockDim.x;
-    int sig_bloqueY = (blockIdx.y + 1) % blockDim.y;
-
-    int bloqueX = blockIdx.x * blockDim.x;
-    int bloqueY = blockIdx.y * blockDim.y;
-
     if (numFila > fila && numCol > col)
     {
-        printf("Nº Bloque (%d, %d) hilo %d pos en memoria COMPARTIDA %d \n", blockIdx.x, blockIdx.y, pos, id);// blockIdx.x* dim + threadIdx.x, blockIdx.y* dim + threadIdx.y);
         curandState_t state;
         curand_init(dev_semilla, pos, 0, &state); //curand_init(semilla, secuencia, offset, estado) secuencia dgenera diferentes secuencias de numeros aleatorio a partir de la misma semilla y offset genera numeros aleatorio s a partir de una secuencia y una semilla  CurandState curandState;
         t_compartido[id] = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
-        printf("Valor en memoria COMPARTIDA %d\n", t_compartido[id]);
         __syncthreads();
         dev_tablero[pos] = t_compartido[id];
     }
@@ -110,31 +101,23 @@ __global__ void kernelBomba(int* dev_tablero, int numFila, int numCol, int pos_e
 {
     int col = (blockIdx.x * blockDim.x) + threadIdx.x;
     int fila = (blockIdx.y * blockDim.y) + threadIdx.y;        //Posicion en la que nos encontramos
-
-    int sig_bloqueX = (blockIdx.x + 1) * blockDim.x;
-    int sig_bloqueY = (blockIdx.y + 1) * blockDim.y;    //POSICION INICIAL del siguiente hilo en el siguiente bloque
-
-    int bloqueX = blockIdx.x * blockDim.x;
-    int bloqueY = blockIdx.y * blockDim.y;
-
     int N = numFila;
     int dim = blockDim.x;
-
     int pos = ((col * N) + fila);
-    if (numCol > numFila)
+    int M = numCol;
+
+    if (numCol >= numFila)
     {
         N = numCol;
+        M = numFila;
         dim = blockDim.y;
         pos = ((fila * N) + col);
-        //id = blockIdx.y * dim + threadIdx.y;
+
     }
-    int id = threadIdx.x * dim + threadIdx.y;
-    id = threadIdx.y * dim + threadIdx.x;
-    int tamX = numFila;
 
-    //  printf(" F[%d] C[%d] dim(%d, %d) | id = %d | pos = %d\n", fila, col, numFila, numCol, id, pos);
+    int id = threadIdx.y * dim + threadIdx.x;                   //Id del hilo dentro de la tesela
 
-    __shared__ int t_compartido[2 * 5];
+    __shared__ int t_compartido[TESELAX * TESELAY];
 
     //Calcula fila y columna de la posición actual
     int filaActual = pos / numCol;
@@ -143,40 +126,35 @@ __global__ void kernelBomba(int* dev_tablero, int numFila, int numCol, int pos_e
     //Calcula fila y columna a borrar
     int filaBorrar = pos_encontrar / numCol;
     int colBorrar = pos_encontrar - filaBorrar * numCol;
-    int* contenido = dev_tablero;
-
-    //  printf("Dim Col %d - Dim Fila %d - Id[%d]  Pos[%d]\n", blockDim.x, blockDim.y, id, pos);
+    bool mem_compartida = false;
 
     if (numFila > fila && numCol > col)
     {
+        //Precargamos los datos en el tablero
         t_compartido[id] = dev_tablero[pos];
-        __syncthreads();
+
+        __syncthreads();                        //Esperamos a que todos los hilos de un bloque hayan  cargado sus datos en la memoria compartida
+
+
         //si posición actual esta en la fila o columna que queremos borrar
-        if (filaBorrar == filaActual || colBorrar == colActual && 0 <= filaActual <= numFila && 0 <= colActual <= numCol)
+        if (filaBorrar == filaActual || colBorrar == colActual) //&& 0 <= filaActual <= numFila && 0 <= colActual <= numCol)
         {
-            if (col < sig_bloqueX && fila < sig_bloqueY && pos > bloqueX)
-            {
-                //  printf("H%d | Bloque Actual  [%d][%d] || Sig Bloques [%d][%d]\n",pos, bloqueX, bloqueY, sig_bloqueX, sig_bloqueY);
-                t_compartido[id] = -1;  //Indicamos que se borra
-                dev_tablero[pos] = t_compartido[id];
-            }
-            else 
-            {
-
-                dev_tablero[pos] = -1;
-            }
-
-
+            printf(" F[%d] C[%d] dim(%d, %d) | id = %d | pos = %d\n", fila, col, numFila, numCol, id, pos);
+            t_compartido[id] = -1;     //Indicamos que se borra
+            mem_compartida = true;
         }
-    }
+        if (pos == pos_encontrar)
+        {
+            t_compartido[id] = -1;  //Eliminamos bloque especial
+            mem_compartida = true;
+        }
+        __syncthreads(); //Esperamos a que todos los hilos del mismo bloque hayan ejecutado el if antes de establecer la posicion a encontrar en -1
+        if (mem_compartida == true) {
+            dev_tablero[pos] = t_compartido[id];
+            printf("id = %d | pos = %d | valor compartido[%d]\n", id, pos, t_compartido[id]);
+        }
 
-    dev_tablero[pos_encontrar] = -1;              //Eliminamos bloque especial
-    __syncthreads(); //Esperamos a que todos los hilos del mismo bloque hayan ejecutado el if antes de establecer la posicion a encontrar en -1
-    if (numFila > fila && numCol > col)
-    {
-        dev_tablero[pos] = t_compartido[id];  //Indicamos que se borra
     }
-
 
 }
 
@@ -186,32 +164,40 @@ __global__ void kernelTNT(int* dev_tablero, int numFila, int numCol, int pos_enc
 {
     int col = (blockIdx.x * blockDim.x) + threadIdx.x;
     int fila = (blockIdx.y * blockDim.y) + threadIdx.y;        //Posicion en la que nos encontramos
-    int sig_bloqueX = (blockIdx.x + 1) * blockDim.x;
-    int sig_bloqueY = (blockIdx.y + 1) * blockDim.y;
-    int bloqueX = blockIdx.x * blockDim.x;
-    int bloqueY = blockIdx.y * blockDim.y;
     int N = numFila;
     int dim = blockDim.x;
-
     int pos = ((col * N) + fila);
-    if (numCol > numFila)
+    int M = numCol;
+
+    if (numCol >= numFila)
     {
         N = numCol;
+        M = numFila;
         dim = blockDim.y;
         pos = ((fila * N) + col);
-        //id = blockIdx.y * dim + threadIdx.y;
-    }
-    int id = threadIdx.x * dim + threadIdx.y;
-    id = threadIdx.y * dim + threadIdx.x;
-    int tamX = numFila;
 
-    //  printf(" F[%d] C[%d] dim(%d, %d) | id = %d | pos = %d\n", fila, col, numFila, numCol, id, pos);
+    }
+    bool memoria_compartida = false;
+    int id = threadIdx.y * dim + threadIdx.x;                   //Id del hilo dentro de la tesela
 
     __shared__ int t_compartido[TESELAX * TESELAY];
 
+    //Calcula fila y columna de la posición actual
+    int filaActual = pos / numCol;
+    int colActual = pos - filaActual * numCol;
+
+    //Calcula fila y columna a borrar
+    int filaBorrar = pos_encontrar / numCol;
+    int colBorrar = pos_encontrar - filaBorrar * numCol;
+    bool mem_compartida = false;
+
     if (numFila > fila && numCol > col)
     {
-        //Calcula fila y columna de la posición actual
+
+        //Precargamos los datos en el tablero
+        t_compartido[id] = dev_tablero[pos];
+        __syncthreads();                        //Esperamos a que todos los hilos de un bloque hayan  cargado sus datos en la memoria compartida
+       //Calcula fila y columna de la posición actual
         int filaActual = pos / numCol;
         int colActual = pos - filaActual * numCol;
 
@@ -225,14 +211,25 @@ __global__ void kernelTNT(int* dev_tablero, int numFila, int numCol, int pos_enc
         int colBorrarArriba = colBorrar - 4;
 
         //si posición actual es adyacente y esta dentro del rango que queremos borrar (4)
-        if (filaBorrarIzq <= filaActual <= filaBorrarDer && colBorrarArriba <= colActual <= colBorrarAbajo && 0 <= filaActual <= numFila && 0 <= colActual <= numCol && pos < (numCol * numFila))
+        if (filaBorrarIzq <= filaActual && filaActual <= filaBorrarDer && colBorrarArriba <= colActual && colActual <= colBorrarAbajo && 0 <= filaActual && filaActual < numFila && 0 <= colActual && colActual < numCol && pos < (numCol * numFila))
         {
-            dev_tablero[pos] = -1; //Indicamos que se borra
+            printf("Hilo %d | id=%d | tablero compartido = %d | tablero normal = %d\n", pos, id, t_compartido[id], dev_tablero[pos]);
+            t_compartido[id] = -1; //Indicamos que se borra
+            mem_compartida = true;
         }
+
+        if (pos == pos_encontrar) {
+            t_compartido[id] = -1; //Eliminamos bloque especial
+            mem_compartida = true;
+        }
+        __syncthreads(); //Esperamos a que todos los hilos del mismo bloque hayan ejecutado el if antes de establecer la posicion a encontrar en -1
+        if (mem_compartida == true)
+        {
+            dev_tablero[pos] = t_compartido[id];
+        }
+
     }
 
-    __syncthreads(); //Esperamos a que todos los hilos del mismo bloque hayan ejecutado el if antes de establecer la posicion a encontrar en -1
-    dev_tablero[pos_encontrar] = -1;              //Eliminamos bloque especial
 
 }
 
@@ -242,10 +239,6 @@ __global__ void kernelRompeCabezas(int* dev_tablero, int numFila, int numCol, in
 {
     int col = (blockIdx.x * blockDim.x) + threadIdx.x;
     int fila = (blockIdx.y * blockDim.y) + threadIdx.y;        //Posicion en la que nos encontramos
-    int sig_bloqueX = (blockIdx.x + 1) * blockDim.x;
-    int sig_bloqueY = (blockIdx.y + 1) * blockDim.y;
-    int bloqueX = blockIdx.x * blockDim.x;
-    int bloqueY = blockIdx.y * blockDim.y;
     int N = numFila;
     int dim = blockDim.x;
 
@@ -256,174 +249,169 @@ __global__ void kernelRompeCabezas(int* dev_tablero, int numFila, int numCol, in
         dim = blockDim.y;
         pos = ((fila * N) + col);
     }
-    int id = threadIdx.x * dim + threadIdx.y;
-    id = threadIdx.y * dim + threadIdx.x;
-    int tamX = numFila;
-
-    //  printf(" F[%d] C[%d] dim(%d, %d) | id = %d | pos = %d\n", fila, col, numFila, numCol, id, pos);
+    int id = threadIdx.y * dim + threadIdx.x;
 
     __shared__ int t_compartido[TESELAX * TESELAY];
 
     if (numFila > fila && numCol > col)
     {
-        //Calcula fila y columna de la posición actual
+        t_compartido[id] = dev_tablero[pos];
+        __syncthreads();
+
         int filaActual = pos / numCol;
         int colActual = pos - filaActual * numCol;
 
-        //si posición actual tiene el color indicado se elimina
-        if (dev_tablero[pos] == color && pos < (numCol * numFila))
+        //Si la posición actual tiene el color indicado se elimina
+        if (t_compartido[id] == color && pos < (numCol * numFila))
         {
-
-            dev_tablero[pos] = -1; //Indicamos que se borra
+            t_compartido[id] = -1; //Indicamos que se borra
         }
+        if (pos == pos_encontrar) {
+            t_compartido[id] = -1; //Indicamos que se borra
+        }
+        __syncthreads(); //Esperamos a que todos los hilos del mismo bloque hayan ejecutado el if antes de establecer la posicion a encontrar en -1
+        dev_tablero[pos] = t_compartido[id];              //Eliminamos bloque especial
     }
 
-    __syncthreads(); //Esperamos a que todos los hilos del mismo bloque hayan ejecutado el if antes de establecer la posicion a encontrar en -1
-    dev_tablero[pos_encontrar] = -1;              //Eliminamos bloque especial
-
 }
-
 
 
 __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int numCol, int dev_semilla, int dificultad, int* dev_index)
 {
     dev_index[0] = 0;
-
     int col = (blockIdx.x * blockDim.x) + threadIdx.x;
     int fila = (blockIdx.y * blockDim.y) + threadIdx.y;        //Posicion en la que nos encontramos
 
-    int sig_bloqueX = (blockIdx.x + 1) * blockDim.x;
-    int sig_bloqueY = (blockIdx.y + 1) * blockDim.y;    //POSICION INICIAL del siguiente hilo en el siguiente bloque
-    int bloque_col_anteriorX = (blockIdx.x - 1) * blockDim.x;
-    int bloque_fila_anteriorY = (blockIdx.y - 1) * blockDim.y;
+    int sig_bloqueX = (blockIdx.x + 1) * blockDim.x;            //Posicion inicial de la columna del siguiente hilo del siguiente bloque
+    int sig_bloqueY = (blockIdx.y + 1) * blockDim.y;            //Posicion inicial de la fila del siguiente hilo en el siguiente bloque
 
-    int bloqueX = blockIdx.x * blockDim.x;
-    int bloqueY = blockIdx.y * blockDim.y;
-
-    int bloqueX_anterior = (blockIdx.x) * blockDim.x;
-    int bloqueY_siguiente = blockIdx.y * blockDim.y;
+    int bloqueX = blockIdx.x * blockDim.x;                      // //Posicion inicial de la columna del primer hilo del blqoue actual
+    int bloqueY = blockIdx.y * blockDim.y;                      //Posicion inicial de la fila del primer hilo del blqoue actual
 
     int N = numFila;
     int dim = blockDim.x;
-
     int pos = ((col * N) + fila);
-    int id_general = bloqueX * N + bloqueY;
-    // int id_fila_anterior = (bloqueX)*N + bloqueY;
-    int id_fila_anterior = ((fila - 1) * gridDim.x) + col;
-    if (numCol > numFila)
+    int M = numCol;
+
+
+    int bloque_fila_actual = (fila) / TESELAX;
+    int bloque_col_actual = (col) / TESELAY;
+
+    //Calculo del id del bloque tiene el hilo en la posicion de su izquierda, derecha, arriba y abajo
+    int bloque_arriba_y = (fila - 1) / TESELAY;         //Arriba -1 Fila
+
+
+    if (numCol >= numFila)
     {
         N = numCol;
+        M = numFila;
         dim = blockDim.y;
         pos = ((fila * N) + col);
-        id_general = bloqueY * N + bloqueX;
-        id_fila_anterior = (bloqueY - 1) * N + (bloqueX);
+
+        //Id bloque actual del hilo en X e Y
+        bloque_fila_actual = (fila) / TESELAY;
+        bloque_col_actual = (col) / TESELAX;
+
+        bloque_arriba_y = (fila - 1) / TESELAY;         //Arriba -1 Fila
 
     }
-    int posAnterior = (pos - numCol) / dim;
 
-    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
-    int blockId_fila = (blockIdx.x - 1) + (blockIdx.y) * gridDim.x;
+    int id = threadIdx.y * dim + threadIdx.x;                   //Id del hilo dentro de la tesela
 
-    int tileRow = blockId / (N / 2);
-    int tileCol = (blockId % (N / 2)) * 5;
+    __shared__ int t_compartido[TESELAX * TESELAY];
 
-    int bloque_anterior = blockIdx.x - ((threadIdx.x + blockDim.x * threadIdx.y) == 0 ? 1 : 0);
-    int fila_anterior = fila - 1;
-    int indice_fila_anterior = fila_anterior * N + col;
-    int indice_bloque_anterior = bloque_anterior * blockDim.x * blockDim.y;
-    int previous_index = indice_bloque_anterior + indice_fila_anterior;
-
-    int tile_size_x = blockDim.x * gridDim.x; // ancho total de la tesela
-    int tile_size_y = blockDim.y * gridDim.y; // alto total de la tesela
-    int tile_x = blockIdx.x * blockDim.x; // posición x de la esquina superior izquierda de la tesela
-    int tile_y = blockIdx.y * blockDim.y; // posición y de la esquina superior izquierda de la teselab
-    int pos_x = threadIdx.x + tile_x; // posición x absoluta del hilo en la matriz
-    int pos_y = threadIdx.y + tile_y; // posición y absoluta del hilo en la matriz
-
-    int tile_idx_x = pos_x / tile_size_x; // índice x de la tesela a la que pertenece la posición
-    int tile_idx_y = pos_y / tile_size_y; // índice y de la tesela a la que pertenece la posición
-
-    int id = threadIdx.x * dim + threadIdx.y;
-    id = threadIdx.y * dim + threadIdx.x;
-    int tamX = numFila;
-    //  printf("Dim Col %d - Dim Fila %d - Id[%d]  Pos[%d]\n", blockDim.x, blockDim.y, id, pos);
-    //  printf(" F[%d] C[%d] dim(%d, %d) | id = %d | pos = %d\n", fila, col, numFila, numCol, id, pos);
-
-      //__shared__ int t_compartido[TESELAX*TESELAY];
-    __shared__ int t_compartido[N_FILAS * M_COLUMNA];
-
-    //if (col < sig_bloqueX && fila < sig_bloqueY && pos > bloqueX)
-
-    /*
-
-    for (int azulejo = 0; azulejo < (N + (TESELAX*TESELAY) - 1 / (TESELAX * TESELAY)); azulejo++)
+    //Cargamos los valores de la tesela en memoria compartida
+    for (int azulejo = 0; azulejo < (N + (TESELAX * TESELAY) - 1 / (TESELAX * TESELAY)); azulejo++)
     {
-        if (fila < numFila && col < numCol && azulejo*(TESELAX) + threadIdx.x < numCol && azulejo*TESELAY + threadIdx.y < numFila)
+        if (fila < numFila && col < numCol && azulejo * (TESELAX)+threadIdx.x < numCol && azulejo * TESELAY + threadIdx.y < numFila)
         {
-            printf("Cargando valor compartido hilo %d\n", pos);
+            //   printf("Hilo %d = %d\n", pos, t_compartido[id]);
+
             t_compartido[id] = dev_tablero[pos];
-        }
-        else
-        {
-            t_compartido[id] = 0;
+
         }
     }
-    */
+    __syncthreads();
 
     if (numFila > fila && numCol > col)
     {
-        t_compartido[pos] = dev_tablero[pos];
         __syncthreads();
         int filaActual = pos / numCol;
         int colActual = pos - filaActual * numCol;
-       
-        if (col < sig_bloqueX && fila < sig_bloqueY && col >= bloqueX && fila >= bloqueY && fila - 1 < sig_bloqueY && fila - 1 >= bloqueY)// && bloque_col_anteriorX >= bloqueX && bloque_fila_anteriorY >= bloqueY) //pos < (bloqueX * N + bloqueY) && (pos - numCol) < (bloqueX))
+        bool mem = false;
+        bool mem_compartida = false;
+        if (bloque_arriba_y == bloque_fila_actual)
         {
-            printf("Hilo [%d] entra\n", pos);
-            if (t_compartido[pos] == -1)
+            
+            if (t_compartido[id] == -1)
             {
-                if (filaActual > 0 && filaActual <= numFila && t_compartido[pos - numCol] != -1)
+                printf("Hilo %d en el mismo bloque, con id %d = %d \n", pos, id, t_compartido[id]);
+                if ((id - TESELAX) > 0) //&& ((id - TESELAX)* (TESELAX)+threadIdx.x) < numCol && (id * TESELAY + threadIdx.y) < numFila)
                 {
-                    t_compartido[pos] = t_compartido[pos - numCol];
-                    t_compartido[pos - numCol] = -1;
-
-                    atomicAdd(&dev_index[0], 1);
+                    printf("Hilo %d = %d \n", pos, t_compartido[id]);
+                    if (t_compartido[id - TESELAX] != -1)
+                    {
+                        printf("SUSTITUYOOO %d por %d \n", t_compartido[id],t_compartido[id - TESELAX]);
+                        t_compartido[id] = t_compartido[id - TESELAX];
+                        t_compartido[id - TESELAX] = -1;
+                        atomicAdd(&dev_index[0], 1);
+                        mem = true;
+                    }
+                    else if (t_compartido[id - TESELAX] != -1)
+                    {
+                        printf("Soyyyyy %d \n", pos);
+                        curandState_t state;
+                        curand_init(dev_semilla, pos, 0, &state);                   //curand_init(semilla, secuencia, offset, estado) secuencia dgenera diferentes secuencias de numeros aleatorio a partir de la misma semilla y offset genera numeros aleatorio s a partir de una secuencia y una semilla  CurandState curandState;
+                        int color = abs((int)(curand(&state) % dificultad) + 1);    //Rellena tablero con numeros aleatorios entre 1 y 6
+                        t_compartido[id] = color;
+                        atomicAdd(&dev_index[0], 1);
+                        mem_compartida = true;
+                    }
+                    
                 }
-                else if (t_compartido[pos - numCol] != -1)
+                else
                 {
                     curandState_t state;
                     curand_init(dev_semilla, pos, 0, &state); //curand_init(semilla, secuencia, offset, estado) secuencia dgenera diferentes secuencias de numeros aleatorio a partir de la misma semilla y offset genera numeros aleatorio s a partir de una secuencia y una semilla  CurandState curandState;
                     int color = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
-                    printf("COLOR %d\n", color);
-                    t_compartido[pos] = color;
+                    t_compartido[id] = color;
                     atomicAdd(&dev_index[0], 1);
+                    mem_compartida = true;
                 }
             }
-            if (dev_tablero[pos - numCol] == -1)
+            __syncthreads();
+            if (mem)
             {
-                dev_tablero[pos - numCol] = -1;
+                dev_tablero[pos - numCol] = t_compartido[id - TESELAX];
             }
-             
-            dev_tablero[pos] = t_compartido[pos];
+
+            if (mem_compartida == true) {
+                dev_tablero[pos] = t_compartido[id];
+            }
+            
         }
         else if (dev_tablero[pos] == -1)
         {
+            
             if (filaActual > 0 && filaActual <= numFila && dev_tablero[pos - numCol] != -1)
             {
+                
                 dev_tablero[pos] = dev_tablero[pos - numCol];
                 dev_tablero[pos - numCol] = -1;
                 atomicAdd(&dev_index[0], 1);
+                printf("Hilo %d = %d distinto bloque tablero[%d]= %d\n", pos, t_compartido[id], pos-numCol, dev_tablero[pos - numCol]);
+
             }
             else if (dev_tablero[pos - numCol] != -1)
             {
                 curandState_t state;
                 curand_init(dev_semilla, pos, 0, &state); //curand_init(semilla, secuencia, offset, estado) secuencia dgenera diferentes secuencias de numeros aleatorio a partir de la misma semilla y offset genera numeros aleatorio s a partir de una secuencia y una semilla  CurandState curandState;
                 int color = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
-                printf("COLOR %d\n", color);
                 dev_tablero[pos] = color;
                 atomicAdd(&dev_index[0], 1);
             }
         }
+        printf("tablero[%d]= %d\n", pos,dev_tablero[pos]);
 
     }
 
@@ -431,289 +419,224 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
 
 __global__ void kernelEncontrarCaminos(int* dev_tablero, int numFila, int numCol, int* dev_index, int pos_encontrar, bool* dev_encontrado, int color)
 {
-    int col = (blockIdx.x * blockDim.x) + threadIdx.x;
-    int fila = (blockIdx.y * blockDim.y) + threadIdx.y;        //Posicion en la que nos encontramos
-    int sig_bloqueX = (blockIdx.x + 1) * blockDim.x;
-    int sig_bloqueY = (blockIdx.y + 1) * blockDim.y;
-    int bloqueX = blockIdx.x * blockDim.x;
-    int bloqueY = blockIdx.y * blockDim.y;
-    int N = numFila;
-    int dim = blockDim.x;
-
-    int pos = ((col * N) + fila);
-
-    __shared__ int t_compartido[N_FILAS * M_COLUMNA];
-
-    if (numCol > numFila)
-    {
-        N = numCol;
-        dim = blockDim.y;
-        pos = ((fila * N) + col);
-        //id = blockIdx.y * dim + threadIdx.y;
-    }
-    int id = threadIdx.x * dim + threadIdx.y;
-    id = threadIdx.y * dim + threadIdx.x;
-    int tamX = numFila;
-
-    //  printf(" F[%d] C[%d] dim(%d, %d) | id = %d | pos = %d\n", fila, col, numFila, numCol, id, pos);
-
+    //Declaracion de varibles
     bool encontrado = false;
     bool camino_invalido = false;
     int posAux;
     int index = 0;
+
+    int col = (blockIdx.x * blockDim.x) + threadIdx.x;
+    int fila = (blockIdx.y * blockDim.y) + threadIdx.y;        //Posicion en la que nos encontramos
+
+    int sig_bloqueX = (blockIdx.x + 1) * blockDim.x;            //Posicion inicial de la columna del siguiente hilo del siguiente bloque
+    int sig_bloqueY = (blockIdx.y + 1) * blockDim.y;            //Posicion inicial de la fila del siguiente hilo en el siguiente bloque
+
+    int bloqueX = blockIdx.x * blockDim.x;                      // //Posicion inicial de la columna del primer hilo del blqoue actual
+    int bloqueY = blockIdx.y * blockDim.y;                      //Posicion inicial de la fila del primer hilo del blqoue actual
+
+    int N = numFila;
+    int dim = blockDim.x;
+    int pos = ((col * N) + fila);
+    int M = numCol;
+
+
+    int bloque_fila_actual = (fila) / TESELAX;
+    int bloque_col_actual = (col) / TESELAY;
+
+    //Calculo del id del bloque tiene el hilo en la posicion de su izquierda, derecha, arriba y abajo
+    int bloque_arriba_y = (fila - 1) / TESELAY;         //Arriba -1 Fila
+    int bloque_abajo_y = (fila + 1) / TESELAY;         //Derecha +1
+    int bloque_izquierda_x = (col - 1) / TESELAX;     //Abajo +1 Fila
+    int bloque_derecha_x = (col + 1) / TESELAX;       //Izquierda -1
 
     //Recorrer 1º fila y 2ºColumna del tablero en la que se encuentra la celda de POS
     int filaActual = pos / numCol;
     int colActual = pos - filaActual * numCol;
     int ultima_posicion = pos;
 
-    int filaEncontrar = pos_encontrar / numCol;
-    int colEncontrar = pos_encontrar - filaEncontrar * numCol;
+    // printf("Hilo [%d] -divido %d / %d\n", pos, fila-1, TESELAY);
 
-    //Rellena tablero
-    t_compartido[pos] = dev_tablero[pos];
+    if (numCol >= numFila)
+    {
+        N = numCol;
+        M = numFila;
+        dim = blockDim.y;
+        pos = ((fila * N) + col);
+
+        //Id bloque actual del hilo en X e Y
+        bloque_fila_actual = (fila) / TESELAY;
+        bloque_col_actual = (col) / TESELAX;
+
+        bloque_arriba_y = (fila - 1) / TESELAY;         //Arriba -1 Fila
+        bloque_abajo_y = (fila + 1) / TESELAY;         //Derecha +1
+        bloque_izquierda_x = (col - 1) / TESELAX;     //Abajo +1 Fila
+        bloque_derecha_x = (col + 1) / TESELAX;       //Izquierda -1
+
+    }
+
+    int id = threadIdx.y * dim + threadIdx.x;                   //Id del hilo dentro de la tesela
+    int posId = id;
+
+    __shared__ int t_compartido[TESELAX * TESELAY];
+
+    if (numFila > fila && numCol > col) {
+        t_compartido[id] = dev_tablero[pos];
+    }
     __syncthreads();
 
-
-    if (col < sig_bloqueX && fila < sig_bloqueY && col >= bloqueX && fila >= bloqueY && filaEncontrar >= bloqueY && filaEncontrar < sig_bloqueY && colEncontrar >= bloqueX && colEncontrar < sig_bloqueX)   //Si en mismo bloque
+    /*
+    //Cargamos los valores de la tesela en memoria compartida
+    for (int azulejo = 0; azulejo < (N + (TESELAX * TESELAY) - 1 / (TESELAX * TESELAY)); azulejo++)
     {
-
-        if (pos_encontrar == pos && numFila > fila && numCol > col)
+        if (fila < numFila && col < numCol && azulejo * (TESELAX)+threadIdx.x < numCol && azulejo * TESELAY + threadIdx.y < numFila)
         {
-            if ((t_compartido[pos] == color || t_compartido[pos] == -1))
-            {
-                printf("Hilo %d ha entrado a buscar camino COMPARTIDA [%d][%d]\n", pos, col, fila);
-                encontrado = false;
-                posAux = pos;
+            t_compartido[id] = dev_tablero[pos];
 
-                while ((posAux < (numCol * numFila)) && !camino_invalido && !encontrado)// && (dev_tablero[posAux] == color || dev_tablero[posAux] == -1))
-                {
-                    int sigfila = (posAux + 1) / numCol;                 //Fila en la que se encuentra el siguiente elemento
-                    int sigcol = (posAux + 1) - sigfila * numCol;       //Columna en la que se encuentra el siguiente elemento
-
-                    int fila_anterior = (posAux - 1) / numCol;                 //Fila en la que se encuentra el elemento ANTERIOR
-                    int col_anterior = (posAux - 1) - fila_anterior * numCol; //Columna en la que se encuentra el elemento anterior
-
-                    int posSigFila = (posAux + numCol) / numCol;
-                    int fila_actual = posAux / numCol;
-                    int col_actual = posAux - fila_actual * numCol;
-
-                    //Comprobar si está en memoria compartida o no
-                    if (sigcol >= bloqueX && sigcol < sig_bloqueX)
-                    {
-                        if (color == t_compartido[posAux + 1] && sigcol > 0 && (posAux + 1) != ultima_posicion)
-                        {
-                            printf("\nCondicion DERECHA lleva a la posicion[%d] desde pos[%d] hilo %d con color %d\n", posAux + 1, pos, posAux, color);
-                            printf("\nAvanza a la pos DERECHA [%d] hilo %d con color %d\n", posAux, pos, color);
-                            index += 1;
-                            ultima_posicion = posAux;
-                            posAux += 1;
-                            t_compartido[posAux] = -1;
-                        }
-                        dev_tablero[pos] = t_compartido[pos];
-                    }
-                    else 
-                    {
-                        if (color == dev_tablero[posAux + 1] && sigcol > 0 && (posAux + 1) != ultima_posicion)          //Nos desplazamos a la derecha
-                        {
-                            printf("\nCondicion DERECHA lleva a la posicion[%d] desde pos[%d] hilo %d con color %d\n", posAux + 1, pos, posAux, color);
-                            printf("\nAvanza a la pos DERECHA [%d] hilo %d con color %d\n", posAux, pos, color);
-                            index += 1;
-                            ultima_posicion = posAux;
-                            posAux += 1;
-                            dev_tablero[posAux] = -1;
-                        }
-                    }
-
-                    if (sigfila >= bloqueY && sigfila < sig_bloqueY)
-                    {
-                        if (color == t_compartido[posAux + numCol] && (posAux + numCol) < (numCol * numFila) && (posAux + numCol) != ultima_posicion)  //Hacia abajo           && (posAux + numCol) != ultima_posicion
-                        {
-                            ultima_posicion = posAux;
-                            posAux = posAux + numCol;
-                            index += 1;
-                            t_compartido[posAux] = -1;
-                            printf("\nAvanza a la pos de ABAJO [%d] ultima posicion %d hilo %d", posAux + numCol, posAux, pos);
-                        }
-                        dev_tablero[pos] = t_compartido[pos];
-                    }
-                    else if (color == t_compartido[posAux + numCol] && (posAux + numCol) < (numCol * numFila) && (posAux + numCol) != ultima_posicion)  //Hacia abajo           && (posAux + numCol) != ultima_posicion
-                    {
-                        ultima_posicion = posAux;
-                        posAux = posAux + numCol;
-                        index += 1;
-                        dev_tablero[posAux] = -1;
-                        printf("\nAvanza a la pos de ABAJO [%d] ultima posicion %d hilo %d", posAux + numCol, posAux, pos);
-                    }
-                   if (col_anterior >= bloqueX && col_actual < sig_bloqueX)
-                    {
-                        if (color == t_compartido[posAux - 1] && col_anterior >= 0 && (col_anterior < numCol - 1) && (posAux - 1) != ultima_posicion)           //Izquierda
-                        {
-                            index += 1;
-                            ultima_posicion = posAux;
-                            posAux = posAux - 1;
-                            printf("\nAvanza a la pos IZQUIERDA [%d] hilo %d", posAux, pos);
-                            t_compartido[posAux] = -1;
-                        }
-                        dev_tablero[pos] = t_compartido[pos];
-                    }
-                    else if (color == dev_tablero[posAux - 1] && col_anterior >= 0 && (col_anterior < numCol - 1) && (posAux - 1) != ultima_posicion)           //Izquierda
-                    {
-                        index += 1;
-                        ultima_posicion = posAux;
-                        posAux = posAux - 1;
-                        printf("\nAvanza a la pos IZQUIERDA [%d] hilo %d", posAux, pos);
-                        dev_tablero[posAux] = -1;
-                    }
-                    if (fila - 1 >= bloqueY && fila - 1 < sig_bloqueY)
-                    {
-                        if (color == t_compartido[posAux - numCol] && (posAux - numCol) >= 0 && filaActual >= 0 && filaActual <= numFila && (posAux - numCol) != ultima_posicion)  //ARRIBA
-                        {
-
-                            index += 1;
-                            ultima_posicion = posAux;
-                            printf("\nAvanza a la pos ARRIBA [%d] ultima posicion %d hilo %d", (posAux - numCol), ultima_posicion, pos);
-                            posAux = posAux - numCol;
-                            t_compartido[posAux] = -1;
-                        }
-                        dev_tablero[pos] = t_compartido[pos];
-                    }
-                    else if (color == dev_tablero[posAux - numCol] && (posAux - numCol) >= 0 && filaActual >= 0 && filaActual <= numFila && (posAux - numCol) != ultima_posicion)  //ARRIBA
-                    {
-
-                        index += 1;
-                        ultima_posicion = posAux;
-                        printf("\nAvanza a la pos ARRIBA [%d] ultima posicion %d hilo %d", (posAux - numCol), ultima_posicion, pos);
-                        posAux = posAux - numCol;
-                        dev_tablero[posAux] = -1;
-                    }
-                    else
-                    {
-                        printf("\nNumero elementos %d\n", dev_index[0]);
-
-                        printf("\nCamino ENCONTRADO [%d]\n", pos);
-
-                        if (index > 0) {
-                            atomicAdd(&dev_index[0], 1);
-                            encontrado = true;
-                        }
-                        else {
-                            encontrado = false;
-                        }
-
-                        printf("\nCamino no encontrado desde la posicion %d index vale %d\n", posAux, index);
-                        camino_invalido = true;
-                    }
-                }
-                 dev_encontrado[0] = encontrado;
-                 printf("DEV_ENCONTRADO %d \n", dev_encontrado[0]);
-                 printf("DEV_INDEX %d \n", dev_index[0]);
-                 if (dev_index[0] >= 1 && pos == pos_encontrar)
-                 {
-                     printf("Posicion a encontrar %d \n", pos_encontrar);
-                     t_compartido[pos_encontrar] = -1;              //Establecemos la posicion a encontrar en -1
-                 }
-
-            }
         }
-        dev_tablero[pos] = t_compartido[pos];
     }
-    else
-    { 
-        if (pos_encontrar == pos && numFila > fila && numCol > col)
+    */
+
+    if ((t_compartido[id] == color || t_compartido[id] == -1) && pos_encontrar == pos && numFila > fila && numCol > col)
+    {
+        printf("Hilo %d ha entrado a buscar camino [%d][%d]\n", pos, col, fila);
+        encontrado = false;
+        posAux = pos;
+        posId = id;
+        int tam_tesela = TESELAX * TESELAY;
+
+        while ((posAux < (numCol * numFila)) && !camino_invalido && !encontrado)
         {
-    
-            if ((dev_tablero[pos] == color || dev_tablero[pos] == -1))
+            bool uso_comp = false;
+            int sigfila = (posAux + 1) / numCol;                 //Fila en la que se encuentra el siguiente elemento
+            int sigcol = (posAux + 1) - sigfila * numCol;       //Columna en la que se encuentra el siguiente elemento
+
+            int fila_anterior = (posAux - 1) / numCol;                 //Fila en la que se encuentra el elemento ANTERIOR
+            int col_anterior = (posAux - 1) - fila_anterior * numCol; //Columna en la que se encuentra el elemento anterior
+
+            int posSigFila = (posAux + numCol) / numCol;
+            int fila_actual = posAux / numCol;
+            int col_actual = posAux - fila_actual * numCol;
+
+            if (bloque_derecha_x == bloque_col_actual && (posId + 1) < tam_tesela && t_compartido[posId + 1] == color && sigcol > 0 && (posAux + 1) != ultima_posicion && ((posId + 1) * (TESELAX)+threadIdx.x) < numCol && (id * TESELAY + threadIdx.y) < numFila)   //DERECHA memoria compartida
             {
-                printf("Hilo %d ha entrado a buscar camino [%d][%d]\n", pos, col, fila);
-                encontrado = false;
-                posAux = pos;
+                printf("\nDERECHA MEMORIA COMPARTIDA - PosAux[%d] hilo[%d] posId = %d - Bloque[%d][%d] = (%d)\n", posAux + 1, pos, posId + 1, bloque_col_actual, bloque_fila_actual, bloque_derecha_x);
+                index = index + 1;
+                ultima_posicion = posAux;
+                posAux = posAux + 1;
 
-                while ((posAux < (numCol * numFila)) && !camino_invalido && !encontrado)// && (dev_tablero[posAux] == color || dev_tablero[posAux] == -1))
-                {
-                    int sigfila = (posAux + 1) / numCol;                 //Fila en la que se encuentra el siguiente elemento
-                    int sigcol = (posAux + 1) - sigfila * numCol;       //Columna en la que se encuentra el siguiente elemento
+                //Memoria compartida
+                posId = posId + 1;
+                t_compartido[posId] = -1;
+                uso_comp = true;
 
-                    int fila_anterior = (posAux - 1) / numCol;                 //Fila en la que se encuentra el elemento ANTERIOR
-                    int col_anterior = (posAux - 1) - fila_anterior * numCol; //Columna en la que se encuentra el elemento anterior
-
-                    int posSigFila = (posAux + numCol) / numCol;
-                    int fila_actual = posAux / numCol;
-                    int col_actual = posAux - fila_actual * numCol;
-
-                    printf("\n*Condicion ABAJO lleva a la posicion[%d] desde pos[%d] hilo %d con fila actual %d con color %d\n", posAux + numCol, posAux, pos, fila_actual, dev_tablero[posAux + numCol]);
-
-                    printf("\n*Condicion IZQUIERDA lleva a la posicion[%d] desde pos[%d] hilo %d con columna anterior %d\n", posAux - 1, posAux, pos, col_anterior);
-
-                    printf("\n*Condicion ARRIBA lleva a la posicion[%d] desde pos[%d] hilo %d con color %d\n", posAux - numCol, posAux, pos, color);
-
-                    //Comprobar si está en memoria compartida o no
-                    if (color == dev_tablero[posAux + 1] && sigcol > 0 && (posAux + 1) != ultima_posicion)          //Nos desplazamos a la derecha
-                    {
-                        printf("\nCondicion DERECHA lleva a la posicion[%d] desde pos[%d] hilo %d con color %d\n", posAux + 1, pos, posAux, color);
-                        printf("\nAvanza a la pos DERECHA [%d] hilo %d con color %d\n", posAux, pos, color);
-                        index += 1;
-                        ultima_posicion = posAux;
-                        posAux += 1;
-                        dev_tablero[posAux] = -1;
-
-                    }
-                    else if (color == dev_tablero[posAux + numCol] && (posAux + numCol) < (numCol * numFila))  //Hacia abajo  && (posAux + numCol) != ultima_posicion
-                    {
-                        ultima_posicion = posAux;
-                        posAux = posAux + numCol;
-                        index += 1;
-                        dev_tablero[posAux] = -1;
-                        printf("\nAvanza a la pos de ABAJO [%d] ultima posicion %d hilo %d", posAux + numCol, posAux, pos);
-                    }
-                    else if (color == dev_tablero[posAux - 1] && col_anterior >= 0 && (col_anterior < numCol - 1) && (posAux - 1) != ultima_posicion)           //Izquierda
-                    {
-                        index += 1;
-                        ultima_posicion = posAux;
-                        posAux = posAux - 1;
-                        printf("\nAvanza a la pos IZQUIERDA [%d] hilo %d", posAux, pos);
-
-                        dev_tablero[posAux] = -1;
-                    }
-                    else if (color == dev_tablero[posAux - numCol] && (posAux - numCol) >= 0 && filaActual >= 0 && filaActual <= numFila && (posAux - numCol) != ultima_posicion)  //ARRIBA
-                    {
-
-                        index += 1;
-                        ultima_posicion = posAux;
-                        printf("\nAvanza a la pos ARRIBA [%d] ultima posicion %d hilo %d", (posAux - numCol), ultima_posicion, pos);
-                        posAux = posAux - numCol;
-                        dev_tablero[posAux] = -1;
-                    }
-                    else
-                    {
-                        printf("\nNumero elementos %d\n", dev_index[0]);
-
-                        printf("\nCamino ENCONTRADO [%d]\n", pos);
-
-                        if (index > 0) {
-                            atomicAdd(&dev_index[0], 1);
-                            encontrado = true;
-                        }
-                        else {
-                            encontrado = false;
-                        }
-
-                        printf("\nCamino no encontrado desde la posicion %d index vale %d\n", posAux, index);
-                        camino_invalido = true;
-                    }
-
-                }
-                dev_encontrado[0] = encontrado;
-                printf("DEV_ENCONTRADO %d \n", dev_encontrado[0]);
-                printf("DEV_INDEX %d \n", dev_index[0]);
-                if (dev_index[0] >= 1 && pos == pos_encontrar)
-                {
-                    printf("Posicion a encontrar %d \n", pos_encontrar);
-                    dev_tablero[pos_encontrar] = -1;              //Establecemos la posicion a encontrar en -1
-                }
             }
+            else if (color == dev_tablero[posAux + 1] && sigcol > 0 && (posAux + 1) != ultima_posicion)         //DERECHA NORMAL
+            {
+                printf("\nCondicion DERECHA lleva a la posicion[%d] desde pos[%d] hilo %d con color %d\n", posAux + 1, pos, posAux, color);
+                index += 1;
+                ultima_posicion = posAux;
+                posAux += 1;
+                dev_tablero[posAux] = -1;
+            }
+            else if (bloque_abajo_y == bloque_fila_actual && (posId + TESELAX) < tam_tesela && t_compartido[posId + TESELAX] == color && (posAux + numCol) < (numCol * numFila) && ((posId + TESELAX) * (TESELAX)+threadIdx.x) < numCol && (id * TESELAY + threadIdx.y) < numFila)  //ABAJO memoria compartida
+            {
+                index += 1;
+                ultima_posicion = posAux;
+                posAux = posAux + numCol;
+                printf("\nABAJO - MEM COMPARTIDA [%d]", (posAux + numCol));
+
+                //Memoria compartida
+                posId = posId + TESELAX;
+                uso_comp = true;
+                t_compartido[posId] = -1;
+
+            }
+            else if (color == dev_tablero[posAux + numCol] && (posAux + numCol) < (numCol * numFila))  //Hacia abajo 
+            {
+                ultima_posicion = posAux;
+                posAux = posAux + numCol;
+                index += 1;
+                dev_tablero[posAux] = -1;
+                printf("\nAvanza a la pos de ABAJO [%d] ultima posicion %d hilo %d", posAux + numCol, posAux, pos); // && (id + 1) < tam_tesela) && (id - TESELAX) > 0))
+                uso_comp = true;
+            }
+            else if (bloque_izquierda_x == bloque_col_actual && (posId - 1) > 0 && t_compartido[posId - 1] == color && col_anterior > 0 && (posAux - 1) != ultima_posicion && (id * (TESELAX)+threadIdx.x) < numCol && (id * TESELAY + threadIdx.y) < numFila)   //IZQUIERDA memoria compartida
+            {
+                printf("\nIZQUIERDA COMPARTIDA [%d] - Pos shared %d", (posAux - 1), posId - 1);
+                printf("\nIZQUIERDA MEMORIA COMPARTIDA - hilo %d valor tablero compartido --> (%d)\n", pos, t_compartido[posId]);
+                index += 1;
+                ultima_posicion = posAux;
+                posAux = posAux - 1;
+                uso_comp = true;
+                //Memoria compartida
+                posId = posId - 1;
+                t_compartido[posId] = -1;
+
+            }
+            else if (color == dev_tablero[posAux - 1] && col_anterior > 0 && (posAux - 1) != ultima_posicion)           //Izquierda && (col_anterior < numCol - 1) 
+            {
+                index += 1;
+                ultima_posicion = posAux;
+                printf("\nAvanza a la pos IZQUIERDA [%d] hilo %d", posAux - 1, pos);
+                dev_tablero[posAux] = -1;
+                posAux = posAux - 1;
+            }
+            else if (bloque_arriba_y == bloque_fila_actual && (posId - TESELAX) > 0 && color == t_compartido[posId - TESELAX] && (posAux - numCol) >= 0 && filaActual >= 0 && filaActual <= numFila && (posAux - numCol) != ultima_posicion && (id * (TESELAX)+threadIdx.x) < numCol && (id * TESELAY + threadIdx.y) < numFila)    //Arriba memoria compartida
+            {
+
+                index += 1;
+                ultima_posicion = posAux;
+                printf("\nARRIBA Memoria compartida [%d] ultima posicion %d hilo %d", (posAux - numCol), id - TESELAX);
+                posAux = posAux - numCol;
+
+                //Memoria compartida
+                posId = posId - TESELAX;
+                t_compartido[posId] = -TESELAX;
+                uso_comp = true;
+
+            }
+            else if (color == dev_tablero[posAux - numCol] && (posAux - numCol) >= 0 && filaActual >= 0 && filaActual <= numFila && (posAux - numCol) != ultima_posicion)  //ARRIBA
+            {
+                index += 1;
+                ultima_posicion = posAux;
+                printf("\nAvanza a la pos ARRIBA [%d] ultima posicion %d hilo %d", (posAux - numCol), ultima_posicion, pos);
+                posAux = posAux - numCol;
+                dev_tablero[posAux] = -1;
+            }
+            else
+            {
+                printf("\nNumero elementos %d\n", dev_index[0]);
+
+                printf("\nCamino ENCONTRADO [%d]\n", pos);
+
+                if (index > 0) {
+                    atomicAdd(&dev_index[0], 1);
+                    encontrado = true;
+                }
+                else {
+                    encontrado = false;
+                    //    t_compartido[id] = -1;
+                }
+
+                printf("\nCamino no encontrado desde la posicion %d index vale %d\n", posAux, index);
+                camino_invalido = true;
+                t_compartido[id] = -1;
+                ultima_posicion = posAux;
+                uso_comp = true;
+            }
+            if (uso_comp == true) {
+                printf("\nCambiamos la posicion %d del tablero con %d\n", posAux, index);
+                dev_tablero[ultima_posicion] = t_compartido[id];
+            }
+            __syncthreads();
         }
-    } //Todo con memoria global
+        dev_encontrado[0] = encontrado;
+        printf("\nDEC_INDEX %d\n", dev_index[0]);
+        if (dev_index[0] >= 1 && pos == pos_encontrar)
+        {
+            dev_tablero[pos_encontrar] = -1;              //Establecemos la posicion a encontrar en -1
+        }
+    }
     __syncthreads();
 
 }
@@ -721,29 +644,21 @@ __global__ void kernelEncontrarCaminos(int* dev_tablero, int numFila, int numCol
 __global__ void kernelEncontrarBomba(int* dev_tablero, int numFila, int numCol, int pos_encontrar, int* dev_index_fila, int* dev_index_col)
 {
     int col = (blockIdx.x * blockDim.x) + threadIdx.x;
-    int fila = (blockIdx.y * blockDim.y) + threadIdx.y;        //Posicion en la que nos encontramos
-    int sig_bloqueX = (blockIdx.x + 1) * blockDim.x;
-    int sig_bloqueY = (blockIdx.y + 1) * blockDim.y;
-    int bloqueX = blockIdx.x * blockDim.x;
-    int bloqueY = blockIdx.y * blockDim.y;
+    int fila = (blockIdx.y * blockDim.y) + threadIdx.y;
     int N = numFila;
     int dim = blockDim.x;
+    int pos = ((col * N) + fila);                               //Posicion en la que nos encontramos
 
-    int pos = ((col * N) + fila);
-    if (numCol > numFila)
+    if (numCol >= numFila)
     {
         N = numCol;
         dim = blockDim.y;
         pos = ((fila * N) + col);
-        //id = blockIdx.y * dim + threadIdx.y;
     }
-    int id = threadIdx.x * dim + threadIdx.y;
-    id = threadIdx.y * dim + threadIdx.x;
-    int tamX = numFila;
 
-    //  printf(" F[%d] C[%d] dim(%d, %d) | id = %d | pos = %d\n", fila, col, numFila, numCol, id, pos);
+    int id = threadIdx.y * dim + threadIdx.x;                   //Id del hilo dentro de la tesela
 
-    __shared__ int t_compartido[N_FILAS * M_COLUMNA];
+    __shared__ int t_compartido[TESELAX * TESELAY];
 
     //Calcula fila y columna de la posición actual
     int filaActual = pos / numCol;
@@ -753,161 +668,99 @@ __global__ void kernelEncontrarBomba(int* dev_tablero, int numFila, int numCol, 
     int filaEncontrar = pos_encontrar / numCol;
     int colEncontrar = pos_encontrar - filaEncontrar * numCol;
 
+    bool mem_compartida = false;
+
     if (numFila > fila && numCol > col)
     {
-        t_compartido[pos] = dev_tablero[pos];
-        __syncthreads();
+        t_compartido[id] = dev_tablero[pos];
+        __syncthreads();                        //Esperamos a que todos los hilos de cada bloque hayan cargado sus datos en el tablero
 
-        if (col < sig_bloqueX && fila < sig_bloqueY && col >= bloqueX && fila >= bloqueY && filaEncontrar < sig_bloqueY && filaEncontrar >= bloqueY && colEncontrar < sig_bloqueX && colEncontrar >= bloqueX)
+        if (filaActual == filaEncontrar && (int)dev_index_fila > 5 && t_compartido[id] == -1 && numFila > fila && numCol > col)
         {
-            if (filaActual == filaEncontrar && (int)dev_index_fila > 5 && t_compartido[pos] == -1)
-            {
-                atomicAdd(&dev_index_fila[0], 1);
-            }
-
-            if (colActual == colEncontrar && (int)dev_index_col > 5 && t_compartido[pos] == -1)
-            {
-                atomicAdd(&dev_index_col[0], 1);
-            }
-            __syncthreads();
-            if (dev_index_fila[0] != dev_index_col[0])
-            {
-                //  printf("Valor del contador de fila %d y contador columna %d \n", dev_index_col[0], dev_index_fila[0]);
-                if ((dev_index_fila[0] == 5 && dev_index_col[0] == 1) || (dev_index_col[0] == 5 && dev_index_fila[0] == 1))
-                {
-                    t_compartido[pos_encontrar] = 'B';
-                    dev_index_col[0] = 0;
-                    dev_index_fila[0] = 0;
-                }
-            }
-            dev_tablero[pos] = t_compartido[pos];
+            atomicAdd(&dev_index_fila[0], 1);
         }
-        else
+
+        if (colActual == colEncontrar && (int)dev_index_col > 5 && t_compartido[id] == -1 && numFila > fila && numCol > col)
         {
-            //Parte memoria global
-            if (filaActual == filaEncontrar && (int)dev_index_fila > 5 && dev_tablero[pos] == -1)
-            {
-                atomicAdd(&dev_index_fila[0], 1);
-            }
+            atomicAdd(&dev_index_col[0], 1);
+        }
 
-            if (colActual == colEncontrar && (int)dev_index_col > 5 && dev_tablero[pos] == -1)
-            {
-                atomicAdd(&dev_index_col[0], 1);
-            }
+    }
 
-            __syncthreads();
-            if (dev_index_fila[0] != dev_index_col[0])
-            {
-                //  printf("Valor del contador de fila %d y contador columna %d \n", dev_index_col[0], dev_index_fila[0]);
-                if ((dev_index_fila[0] == 5 && dev_index_col[0] == 1) || (dev_index_col[0] == 5 && dev_index_fila[0] == 1))
-                {
-                    dev_tablero[pos_encontrar] = 'B';
-                    dev_index_col[0] = 0;
-                    dev_index_fila[0] = 0;
-                }
-            }
+
+
+    if (dev_index_fila[0] != dev_index_col[0] && (numFila > col) && (numCol > fila))
+    {
+        if ((dev_index_fila[0] == 5 && dev_index_col[0] == 1) || (dev_index_col[0] == 5 && dev_index_fila[0] == 1))
+        {
+            printf("Hilo %d entra a asignar B: ", pos);
+            t_compartido[id] = 'B';
+        }
+        if (mem_compartida) {
+            dev_tablero[pos] = t_compartido[id];
         }
     }
-    dev_index_col[0] = 0;
-    dev_index_fila[0] = 0;
-    
 }
 
 __global__ void kernelEncontrarRompecabezasTNT(int* dev_tablero, int numFila, int numCol, int pos_encontrar, int* dev_index_RC, int dev_semilla, int dificultad)
 {
     int col = (blockIdx.x * blockDim.x) + threadIdx.x;
-    int fila = (blockIdx.y * blockDim.y) + threadIdx.y;        //Posicion en la que nos encontramos
-    int sig_bloqueX = (blockIdx.x + 1) * blockDim.x;
-    int sig_bloqueY = (blockIdx.y + 1) * blockDim.y;
-    int bloqueX = blockIdx.x * blockDim.x;
-    int bloqueY = blockIdx.y * blockDim.y;
+    int fila = (blockIdx.y * blockDim.y) + threadIdx.y;
     int N = numFila;
     int dim = blockDim.x;
+    int pos = ((col * N) + fila);                   //Posicion en la que nos encontramos
 
-
-
-    int pos = ((col * N) + fila);
-    if (numCol > numFila)
+    if (numCol >= numFila)
     {
         N = numCol;
         dim = blockDim.y;
         pos = ((fila * N) + col);
     }
-    int id = threadIdx.x * dim + threadIdx.y;
-    id = threadIdx.y * dim + threadIdx.x;
-    int tamX = numFila;
 
-    // printf(" F[%d] C[%d] dim(%d, %d) | id = %d | pos = %d\n", fila, col, numFila, numCol, id, pos);
+    int id = threadIdx.y * dim + threadIdx.x;                   //Id del hilo dentro de la tesela
 
-    __shared__ int t_compartido[N_FILAS * M_COLUMNA];
+    __shared__ int t_compartido[TESELAX * TESELAY];
 
-    //Calcula fila y columna de la posición actual
-    int filaActual = pos / numCol;
-    int colActual = pos - filaActual * numCol;
+    bool mem_compartida = false;
 
-    //Calcula fila y columna de la posición a encontrar
-    int filaEncontrar = pos_encontrar / numCol;
-    int colEncontrar = pos_encontrar - filaEncontrar * numCol;
-
-    printf("hilo %d valor %d\n", pos, dev_tablero[pos]);
     if (numFila > fila && numCol > col)
     {
-        t_compartido[pos] = dev_tablero[pos];
+        t_compartido[id] = dev_tablero[pos];
+        __syncthreads();                        //Esperamos a que todos los hilos del bloque hayan incrementado el indice
+
+        if (t_compartido[id] == -1)
+        {
+
+            atomicAdd(&dev_index_RC[0], 1);
+            printf("Entro hilo %d e incremento %d\n", pos, dev_index_RC[0]);
+        }
+
+        printf("Contador TNT - RC %d\n", dev_index_RC[0]);
+        if (dev_index_RC[0] == 6) // && pos == pos_encontrar)
+        {
+            printf("GENERO TNT \n");
+            t_compartido[id] = 'T';
+            dev_index_RC[0] = 0;
+            mem_compartida = true;
+        }
+        else if (dev_index_RC[0] >= 7 && pos == pos_encontrar)
+        {
+            printf("GENERO RC \n");
+            curandState_t state;
+            curand_init(dev_semilla, pos, 0, &state);                   //curand_init(semilla, secuencia, offset, estado) secuencia dgenera diferentes secuencias de numeros aleatorio a partir de la misma semilla y offset genera numeros aleatorio s a partir de una secuencia y una semilla  CurandState curandState;
+            int color = abs((int)(curand(&state) % dificultad) + 1);    //Rellena tablero con numeros aleatorios entre 1 y 6
+            int colorS = 7 + color;
+            t_compartido[id] = colorS;
+            dev_index_RC[0] = 0;
+            mem_compartida = true;
+        }
         __syncthreads();
-
-        if (col < sig_bloqueX && fila < sig_bloqueY && col >= bloqueX && fila >= bloqueY && filaEncontrar < sig_bloqueY && filaEncontrar >= bloqueY && colEncontrar < sig_bloqueX && colEncontrar >= bloqueX)
+        if (mem_compartida == true) 
         {
-            if (t_compartido[pos] == -1)
-            {
-                printf("Entro hilo %d e incremento %d\n", pos, dev_index_RC[0]);
-                atomicAdd(&dev_index_RC[0], 1);
-            }
-
-            printf("Contador TNT - RC %d\n", dev_index_RC[0]);
-            if (dev_index_RC[0] == 6 && pos == pos_encontrar)
-            {
-                t_compartido[pos_encontrar] = 'T';
-                dev_index_RC[0] = 0;
-            }
-            else if (dev_index_RC[0] >= 7 && pos == pos_encontrar)
-            {
-                curandState_t state;
-                curand_init(dev_semilla, pos, 0, &state); //curand_init(semilla, secuencia, offset, estado) secuencia dgenera diferentes secuencias de numeros aleatorio a partir de la misma semilla y offset genera numeros aleatorio s a partir de una secuencia y una semilla  CurandState curandState;
-                int color = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
-                int colorS = 7 + color;
-                t_compartido[pos_encontrar] = colorS;
-                dev_index_RC[0] = 0;
-            }
-            dev_tablero[pos] = t_compartido[pos];
+            dev_tablero[pos] = t_compartido[id];
         }
-
-        else
-        {
-            //Memoria global
-            if (dev_tablero[pos] == -1)
-            {
-                printf("Entro hilo %d e incremento %d\n", pos, dev_index_RC[0]);
-                atomicAdd(&dev_index_RC[0], 1);
-            }
-
-            printf("Contador TNT - RC %d\n", dev_index_RC[0]);
-            if (dev_index_RC[0] == 6 && pos == pos_encontrar)
-            {
-                dev_tablero[pos_encontrar] = 'T';
-                dev_index_RC[0] = 0;
-            }
-            else if (dev_index_RC[0] >= 7 && pos == pos_encontrar)
-            {
-                curandState_t state;
-                curand_init(dev_semilla, pos, 0, &state); //curand_init(semilla, secuencia, offset, estado) secuencia dgenera diferentes secuencias de numeros aleatorio a partir de la misma semilla y offset genera numeros aleatorio s a partir de una secuencia y una semilla  CurandState curandState;
-                int color = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
-                int colorS = 7 + color;
-                dev_tablero[pos_encontrar] = colorS;
-                dev_index_RC[0] = 0;
-            }
-        }
+        __syncthreads();
     }
-    dev_index_RC[0] = 0;
 
 }
 
@@ -924,7 +777,7 @@ int* inicializarTablero(int* h_tablero, int size, int numCol, int numFila, int d
     //Copiamos datos a la GPU 
     cudaMemcpy(dev_Tablero, h_tablero, size * sizeof(int), cudaMemcpyHostToDevice);
 
-    unsigned int semilla = time(NULL);
+    int semilla = generarSemilla();
     dim3 dimGrid(gridX, gridY);
     dim3 dimBlock(hilosBloqueX, hilosBloqueY);
     kernelGenerarTablero << <dimGrid, dimBlock >> > (dev_Tablero, semilla, dificultad, numCol, numFila, hilosBloqueX, hilosBloqueY);
@@ -949,16 +802,13 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
     int* h_index_fila = { 0 };
     int* h_index_RC = { 0 };
 
-    int pos_encontrar = coordX * numFilas + coordY;   //Posicion a ENCONTRAR en el vector 1D
-    if (numColumnas > numFilas)
-    {
-        pos_encontrar = coordX * numColumnas + coordY;   //Posicion a ENCONTRAR en el vector 1D   
-    }
-
+    //int pos_encontrar = coordX * numFilas + coordY;   //Posicion a ENCONTRAR en el vector 1D
+    int  pos_encontrar = coordX * numColumnas + coordY;
+    
     int color = h_tablero[pos_encontrar];
 
-    unsigned int semilla = time(NULL);
-    printf("Posicion a ENCONTRAR %d\n", pos_encontrar);
+    int semilla = generarSemilla();
+
     //Reservar espacio en memoria para GPU (2 matrices y matriz resultado)
     cudaMalloc((void**)&dev_Tablero, size * sizeof(int));
     cudaMalloc((void**)&dev_index, sizeof(int));
@@ -989,6 +839,7 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
     {
         kernelBomba << <dimGrid, dimBlock >> > (dev_Tablero, numFilas, numColumnas, pos_encontrar);
         cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
+
     }
 
     else if (contenido == 'T')
@@ -1001,7 +852,7 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
     {
         int colorBorrar = contenido % 7;
         kernelRompeCabezas << <dimGrid, dimBlock >> > (dev_Tablero, numFilas, numColumnas, colorBorrar, pos_encontrar);
-        printf("COLOrrr %d \n", colorBorrar);
+
         cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
     }
     else //Si es bloque simple
@@ -1010,7 +861,6 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
         //Desde posición idicada se encuentran todos los caminos con el mismo color
         while (cont < numColumnas * numFilas)
         {
-            printf("contador %d \n", cont);
             while (h_encontrado)
             {
 
@@ -1020,7 +870,7 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
                 cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
                 printf("Valor del puntero %d \n", h_encontrado);
                 printf("H_inxex %d\n", h_index);
-                //mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
+                mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
             }
 
             if (h_tablero[cont] == -1)
@@ -1029,7 +879,7 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
                 cudaMemcpy(&h_encontrado, dev_encontrado, sizeof(bool), cudaMemcpyDeviceToHost);
                 cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
                 cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
-                // mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
+                mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
             }
             cont += 1;
         }
@@ -1046,6 +896,8 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
         kernelEncontrarBomba << <dimGrid, dimBlock >> > (dev_Tablero, numFilas, numColumnas, pos_encontrar, dev_index_fila, dev_index_col);
         cudaMemcpy(&h_index_fila, dev_index_fila, sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(&h_index_col, dev_index_col, sizeof(int), cudaMemcpyDeviceToHost);
+        dev_index_fila = 0;
+        dev_index_col = 0;
 
         printf("N Filas %d - N Columnas %d \n", h_index_fila, h_index_col);
         mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
@@ -1054,6 +906,7 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
         kernelEncontrarRompecabezasTNT << <dimGrid, dimBlock >> > (dev_Tablero, numFilas, numColumnas, pos_encontrar, dev_index_RC, semilla, dificultad);
         cudaMemcpy(&h_index_RC, dev_index_RC, sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
+        dev_index_RC = 0;
         mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
 
     }
@@ -1062,14 +915,15 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
 
     h_index = { 0 };
     int iteraciones = 10;
-    //Bucle para reemplazar las posiciones eliminadas mientras que se pueda hacer algun cambio y si no termine
+
     while (iteraciones > 0)
     {
+        semilla = generarSemilla();
         kernelReemplazarPosiciones << <dimGrid, dimBlock >> > (dev_Tablero, numFilas, numColumnas, semilla, dificultad, dev_index);
         cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
-        iteraciones = (int)h_index;
         mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
+        iteraciones = (int)h_index;
     }
     mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
 
@@ -1086,15 +940,17 @@ void main(int argc, char* argv[])
 {
     //Declaracion variables
     //int* h_tablero;
-    int numFilas = 3;
-    int numColumnas = 9;
+    int numFilas = 0;
+    int numColumnas = 0;
     int coordenadaX;
     int coordenadaY;
-    int size = numFilas * numColumnas;
-    int dificultad = 4;
+    int size = 0;
+    int dificultad = 0;
     bool terminado = false;
-    int vida = 5;
     char modoJuego = 'A';
+
+
+    //Calcula caracteristicas tarjeta grafica
     cudaDeviceProp deviceProp;
     cudaGetDeviceProperties(&deviceProp, 0);
     char* nombre = deviceProp.name;
@@ -1105,51 +961,10 @@ void main(int argc, char* argv[])
     int maxGridX = deviceProp.maxThreadsDim[0];
     int maxGridY = deviceProp.maxThreadsDim[1];
 
-    printf("Nombre del Device: %s\n", deviceProp.name);
-    printf("Num maximo de hilos por bloque: %d\n", deviceProp.maxThreadsPerBlock);
-    printf("Num maximo de bloque s: %d\n", maxBlockx);
-    printf("Dimensiones maximas para organizar los hilos en bloques (%d, %d, %d):\n", deviceProp.maxThreadsDim[0], deviceProp.maxThreadsDim[1], deviceProp.maxThreadsDim[2]);
-    printf("Dimensiones maximas para organizar los bloques en el grid (%d, %d, %d):\n", deviceProp.maxGridSize[0], deviceProp.maxGridSize[1], deviceProp.maxGridSize[2]);
-
-    /*
-    * int hilosBloqueX = ceil(numFilas / (float)2);
-    int hilosBloqueY = ceil(numColumnas / (float)2);
-    int gridX = ceil(numFilas / (float)hilosBloqueX);
-    int gridY = ceil(numColumnas / (float)hilosBloqueY);
-    if (numColumnas > numFilas) {
-        hilosBloqueX = ceil(numColumnas / (float)2);
-        hilosBloqueY = ceil(numFilas / (float)2);
-        gridX = ceil(numColumnas / (float)hilosBloqueX);
-        gridY = ceil(numFilas / (float)hilosBloqueY);
-    }
-    */
-
-    int hilosBloqueX = ceil(numColumnas / (float)2);
-    int hilosBloqueY = ceil(numFilas / (float)2);
-    int gridX = ceil(numColumnas / (float)hilosBloqueX);
-    int gridY = ceil(numFilas / (float)hilosBloqueY);
-
-    /*
-    if (numColumnas > numFilas) {
-        hilosBloqueX = ceil(numFilas / (float)2);
-        hilosBloqueY = ceil(numColumnas / (float)2);
-        gridX = ceil(numFilas / (float)hilosBloqueX);
-        gridY = ceil(numColumnas / (float)hilosBloqueY);
-    }
-    */
-    printf("dimBlock(%d, %d), dimGrid(%d, %d): ", hilosBloqueX, hilosBloqueY, gridX, gridY);
-    //Pasamos a memoria constante el numero de filas y columnas introducidas por el usuario
-    cudaMemcpyToSymbol(FILAS, &numFilas, sizeof(int));
-    cudaMemcpyToSymbol(COLUMNAS, &numColumnas, sizeof(int));
-
-    //Reservamos memoria para el tablero, ya que no esta inicializado
-  //  int* h_tablero = (int*)malloc(numFilas * numColumnas * sizeof(int));
-
-    //Llamamos a la funcion que inicializa con valores aleatorios el tablero
- //   h_tablero = inicializarTablero(h_tablero, size, numColumnas, numFilas, dificultad, hilosBloqueX, hilosBloqueY, gridX, gridY);
-    //int h_tablero[25] = { 3,3,3,3,4,3,3,4,3,1,4,3,'B',3,1,3,1,3,3,3,4,1,1,4,3};
-   //int h_tablero[27] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,3,3,3,4,3,3,3,4,3,3,4,3,4,4 };
-    int h_tablero[27] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,'B',3,3,4,3,3,3,4,3,3,4,3,4,4 };
+    
+   // int h_tablero[16] = { 3,3,3,3,4,3,3,4,3,1,4,3,'B',3,1,3};
+   int h_tablero[27] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,3,3,3,4,3,3,3,4,3,3,4,3,4,4 };
+    //int h_tablero[27] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,'T',3,3,4,3,3,3,4,3,3,4,3,4,'T' };
     // int h_tablero[25] = { 3,2,1,5,5,3,3,6,7,3,9,3,'B',3,1,3,1,3,3,3,4,1,1,4,3 };
      //Mostramos el tablero
 
@@ -1162,7 +977,12 @@ void main(int argc, char* argv[])
         printf("\nElija el modo de juego: A (Automatico) - M (Manual):  \n");
         scanf("%c", &modoJuego);
         printf("Modo de juego seleccionado: %c \n", modoJuego);
-        mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
+        printf("\nIntroduzca el numero de filas que tendra el tablero:  \n");
+        scanf("%d", &numFilas);
+        printf("\nIntroduzca el numero de columnas que tendra el tablero:  \n");
+        scanf("%d", &numColumnas);
+        printf("\nIntroduzca la dificultad del juego:  \n");
+        scanf("%d", &dificultad);
     }
 
     else if (argc == -1)
@@ -1189,6 +1009,24 @@ void main(int argc, char* argv[])
         numColumnas = std::stoi(argv[4]);
 
     }
+    size = numFilas * numColumnas;
+
+    //Calcula bloques e hilos optimos para el tamaño de nuestra matriz
+    int hilosBloqueX = ceil(numColumnas / (float)2);
+    int hilosBloqueY = ceil(numFilas / (float)2);
+    int gridX = ceil(numColumnas / (float)hilosBloqueX);
+    int gridY = ceil(numFilas / (float)hilosBloqueY);
+
+
+    //Pasamos a memoria constante el numero de filas y columnas introducidas por el usuario
+
+    //Reservamos memoria para el tablero, ya que no esta inicializado
+   // h_tablero = (int*)malloc(numFilas * numColumnas * sizeof(int));
+
+    //Llamamos a la funcion que inicializa con valores aleatorios el tablero
+    //h_tablero = inicializarTablero(h_tablero, size, numColumnas, numFilas, dificultad, hilosBloqueX, hilosBloqueY, gridX, gridY);
+    mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
+
     if (hilosBloqueX >= maxBlockx && hilosBloqueY >= maxBlocky && gridX > maxGridX && gridY > maxGridY)
     {
         printf("\nSe sobrepasan las dimensiones asociadas a la tarjeta grafica  \n");
@@ -1213,14 +1051,15 @@ void main(int argc, char* argv[])
             {
                 vida = encontrarCamino(h_tablero, numFilas, numColumnas, coordenadaX, coordenadaY, dificultad, vida, hilosBloqueX, hilosBloqueY, gridX, gridY);
                 printf("\nVida restante: %d \n", vida);
+                mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
             }
             else
             {
                 printf("\nLas coordenadas introducidas se encuentran fuera del rango del tablero [%d][%d] \n", numFilas, numColumnas);
             }
 
-
         }
+
         printf("\nPERDEDOR \n");
     }
 

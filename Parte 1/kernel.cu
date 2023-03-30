@@ -20,16 +20,17 @@ void mostrarTablero(int* tablero, int numFilas, int numColumnas, int dificultad)
     int N = numFilas;
     int M = numColumnas;
 
-    if (numColumnas > numFilas)
-    {
+    if (numFilas > numColumnas || numColumnas > numFilas) {
         N = numColumnas;
         M = numFilas;
     }
 
-    for (int i = 0; i < M; i++)
+    for (int i = 0; i < numFilas; i++)
     {
-        for (int j = 0; j < N; j++)
+        for (int j = 0; j < numColumnas; j++)
         {
+            // printf("%d  ", tablero[i * N + j]);
+
             int num = tablero[i * N + j];
             if (num > dificultad)
             {
@@ -129,7 +130,8 @@ __global__ void kernelGenerarTablero(int* dev_tablero, int dev_semilla, int difi
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
     curandState_t state;
     curand_init(dev_semilla, pos, 0, &state); //curand_init(semilla, secuencia, offset, estado) secuencia dgenera diferentes secuencias de numeros aleatorio a partir de la misma semilla y offset genera numeros aleatorio s a partir de una secuencia y una semilla  CurandState curandState;
-    dev_tablero[pos] = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
+    int color = abs((int)(curand(&state) % dificultad) + 1);
+    dev_tablero[pos] = color; //Rellena tablero con numeros aleatorios entre 1 y 6
 }
 
 __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int numCol, int dev_semilla, int dificultad, int* dev_index)
@@ -319,7 +321,7 @@ __global__ void kernelEncontrarRompecabezasTNT(int* dev_tablero, int numFila, in
         dev_tablero[pos_encontrar] = colorS;
     }
     dev_index[0];
-    
+
 }
 
 
@@ -415,7 +417,7 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
         {
             while (h_encontrado)
             {
-                
+
                 kernelEncontrarCaminos << <1, threadsInBlock >> > (dev_Tablero, numFilas, numColumnas, dev_index, pos_encontrar, dev_encontrado, color);
                 cudaMemcpy(&h_encontrado, dev_encontrado, sizeof(bool), cudaMemcpyDeviceToHost);
                 cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
@@ -430,7 +432,7 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
             cont += 1;
         }
         mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
-        
+
         if ((int)h_index == 0 && vida >= 1)
         {
             vida = vida - 1;
@@ -474,41 +476,35 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
 void main(int argc, char* argv[])
 {
     //Declaracion variables
-    //int* h_tablero;
-    int numFilas = 3;
-    int numColumnas = 9;
+    int* h_tablero;
+    int numFilas = 0;
+    int numColumnas = 0;
     int coordenadaX;
     int coordenadaY;
-    int size = numFilas * numColumnas;
+    int size = 0;
     int dificultad = 4;
     bool terminado = false;
-    //int vida = 5;
     char modoJuego = 'A';
 
-    //Pasamos a memoria constante el numero de filas y columnas introducidas por el usuario
-    cudaMemcpyToSymbol(FILAS, &numFilas, sizeof(int));
-    cudaMemcpyToSymbol(COLUMNAS, &numColumnas, sizeof(int));
-
-    //Reservamos memoria para el tablero, ya que no esta inicializado
-    //h_tablero = (int*)malloc(numFilas * numColumnas * sizeof(int));
-
-    //Llamamos a la funcion que inicializa con valores aleatorios el tablero
-   // h_tablero = inicializarTablero(h_tablero, size, dificultad);
-    int h_tablero[27] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,3,3,3,4,3,3,3,4,3,3,4,3,4,4 };
+    //int h_tablero[27] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,3,3,3,4,3,3,3,4,3,3,4,3,4,4 };
     //int h_tablero[27] = { 3,3,3,3,4,3,3,4,4,1,4,4,1,3,1,3,1,3,3,3,4,1,1,4,3 };
     //  int h_tablero[27] = { 3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,1,1,4,4,4,4 };
     //  mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
       //int h_tablero[25] = { 3,2,1,5,5,3,3,6,7,3,9,3,'B',3,1,3,1,3,3,3,4,1,1,4,3 };
-       //Mostramos el tablero
 
-       //Codigo para ejecutar programa y recibir datos por comando
-       //Controla que no de error la llamada
     if (argc == 1)  //No se ha ejecutado por comando
     {
         printf("\nElija el modo de juego: A (Automatico) - M (Manual):  \n");
         scanf("%c", &modoJuego);
         printf("Modo de juego seleccionado: %c \n", modoJuego);
-        mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
+        printf("\nIntroduzca el numero de filas que tendra el tablero:  \n");
+        scanf("%d", &numFilas);
+        printf("NUMERO FILAS %d \n", numFilas);
+        printf("\nIntroduzca el numero de columnas que tendra el tablero:  \n");
+        scanf("%d", &numColumnas);
+        printf("NUMERO COLUMNAS %d \n", numColumnas);
+        printf("\nIntroduzca la dificultad del juego:  \n");
+        scanf("%d", &dificultad);
     }
 
     else if (argc == -1)
@@ -534,6 +530,16 @@ void main(int argc, char* argv[])
         numFilas = std::stoi(argv[3]);
         numColumnas = std::stoi(argv[4]);
     }
+
+    size = numColumnas * numFilas;
+
+    //Reservamos memoria para el tablero, ya que no esta inicializado
+    h_tablero = (int*)malloc(size * sizeof(int));
+
+    //Llamamos a la funcion que inicializa con valores aleatorios el tablero
+    h_tablero = inicializarTablero(h_tablero, size, dificultad);
+
+    mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
 
     while (vida > 0)
     {
@@ -566,24 +572,3 @@ void main(int argc, char* argv[])
 
 
 
-/*
-//Crea un nuevo tablero aleatorio del tamaño indicado
-int** generarTablero(int numFilas, int numColumnas)
-{
-    //Matriz que representa el tablero
-    int** tablero = (int **)malloc(numFilas * sizeof(int));
-    // Para que no se obtengan los mismos números aleatorios
-    srand((unsigned int)time(NULL));
-
-    for (int i = 0; i < numFilas; i++)
-    {
-        tablero[i] = (int *)malloc(numColumnas * sizeof(int));
-        for (int j = 0; j < numColumnas; j++)
-        {
-            tablero[i][j] = (rand() % 6) + 1;   //Rellena tablero con numeros aleatorios entre 1 y 6
-        }
-    }
-    mostrarTablero(tablero, numFilas, numColumnas); //Llama a funcion para mostrar tablero por pantalla
-    return tablero; //devuelve el tablero creado
-}
-*/

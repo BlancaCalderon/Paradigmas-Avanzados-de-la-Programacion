@@ -13,15 +13,11 @@
 
 
 //define numero de filas y columnas del tablero (CUIDADO CAMBIAR A COGER POR CONSOLA QUE FILAS SE QUIERE)
-__constant__ int* FILAS;
-__constant__ int* COLUMNAS;
 int vida = 5;
 __constant__ int hiloX;
 const int TESELAX = 5;
 const int TESELAY = 2;
 
-const int N_FILAS = 5;
-const int M_COLUMNA = 2;
 
 //Funcion que muestra el tablero por consola
 void mostrarTablero(int* tablero, int numFilas, int numColumnas, int dificultad)
@@ -626,7 +622,7 @@ __global__ void kernelEncontrarBomba(int* dev_tablero, int numFila, int numCol, 
     int fila = (blockIdx.y * blockDim.y) + threadIdx.y;        
     int N = numFila;
     int dim = blockDim.x;
-    int pos = ((col * N) + fila);                   //Posicion en la que nos encontramos
+    int pos = ((col * N) + fila);                               //Posicion en la que nos encontramos
 
     if (numCol >= numFila)
     {
@@ -666,7 +662,7 @@ __global__ void kernelEncontrarBomba(int* dev_tablero, int numFila, int numCol, 
 
     }
 
-    __syncthreads();
+
 
     if (dev_index_fila[0] != dev_index_col[0] && (numFila > col) && (numCol > fila))
     {
@@ -712,7 +708,6 @@ __global__ void kernelEncontrarRompecabezasTNT(int* dev_tablero, int numFila, in
             printf("Entro hilo %d e incremento %d\n", pos, dev_index_RC[0]);
             atomicAdd(&dev_index_RC[0], 1);
         }
-        __syncthreads();        //Esperamos a que todos los hilos del bloque hayan incrementado el indice
 
         printf("Contador TNT - RC %d\n", dev_index_RC[0]);
         if (dev_index_RC[0] == 6 && pos == pos_encontrar)
@@ -735,6 +730,7 @@ __global__ void kernelEncontrarRompecabezasTNT(int* dev_tablero, int numFila, in
         if (mem_compartida == true) {
             dev_tablero[pos] = t_compartido[id];
         }
+        __syncthreads();
         dev_index_RC[0] = 0;
     }
 
@@ -874,7 +870,7 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
         cudaMemcpy(dev_index_col, h_index_col, sizeof(int), cudaMemcpyHostToDevice);
         cudaMemcpy(dev_index_fila, h_index_fila, sizeof(int), cudaMemcpyHostToDevice);
         mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
-        kernelEncontrarBomba << <dimGrid, dimBlock >> > (dev_Tablero, numFilas, numColumnas, pos_encontrar, dev_index_fila, dev_index_col);
+        kernelEncontrarBomba << <dimGrid, dimBlock>> > (dev_Tablero, numFilas, numColumnas, pos_encontrar, dev_index_fila, dev_index_col);
         cudaMemcpy(&h_index_fila, dev_index_fila, sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(&h_index_col, dev_index_col, sizeof(int), cudaMemcpyDeviceToHost);
 
@@ -882,7 +878,7 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
         mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
         h_index_RC = { 0 };
         cudaMemcpy(dev_index_RC, h_index_RC, sizeof(int), cudaMemcpyHostToDevice);
-        kernelEncontrarRompecabezasTNT << <dimGrid, dimBlock >> > (dev_Tablero, numFilas, numColumnas, pos_encontrar, dev_index_RC, semilla, dificultad);
+        kernelEncontrarRompecabezasTNT << <dimGrid, dimBlock>> > (dev_Tablero, numFilas, numColumnas, pos_encontrar, dev_index_RC, semilla, dificultad);
         cudaMemcpy(&h_index_RC, dev_index_RC, sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
         mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
@@ -893,7 +889,7 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
 
     h_index = { 0 };
     int iteraciones = 10;
-    //Bucle para reemplazar las posiciones eliminadas mientras que se pueda hacer algun cambio y si no termine
+
     while (iteraciones > 0)
     {
         kernelReemplazarPosiciones << <dimGrid, dimBlock >> > (dev_Tablero, numFilas, numColumnas, semilla, dificultad, dev_index);
@@ -970,8 +966,6 @@ void main(int argc, char* argv[])
     */
     printf("dimBlock(%d, %d), dimGrid(%d, %d): ", hilosBloqueX, hilosBloqueY, gridX, gridY);
     //Pasamos a memoria constante el numero de filas y columnas introducidas por el usuario
-    cudaMemcpyToSymbol(FILAS, &numFilas, sizeof(int));
-    cudaMemcpyToSymbol(COLUMNAS, &numColumnas, sizeof(int));
 
     //Reservamos memoria para el tablero, ya que no esta inicializado
   //  int* h_tablero = (int*)malloc(numFilas * numColumnas * sizeof(int));

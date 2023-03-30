@@ -12,6 +12,14 @@
 
 int vida = 5;
 
+//Genera una semilla aleatoria para cada hilo
+int generarSemilla()
+{
+    curandState_t state;
+    int semilla = time(NULL) * 3663828372 + 12345 + rand();
+    return semilla;
+}
+
 //Funcion que muestra el tablero por consola
 void mostrarTablero(int* tablero, int numFilas, int numColumnas, int dificultad)
 {
@@ -372,11 +380,7 @@ __global__ void kernelEncontrarBomba(int* dev_tablero, int numFila, int numCol, 
             dev_index_col[0] = 0;
         }
     }
-    else
-    {
-        dev_index_fila[0] = 0;
-        dev_index_col[0] = 0;
-    }
+    
 }
 
 __global__ void kernelEncontrarRompecabezasTNT(int* dev_tablero, int numFila, int numCol, int pos_encontrar, int* dev_index_RC, int dev_semilla, int dificultad)
@@ -419,10 +423,6 @@ __global__ void kernelEncontrarRompecabezasTNT(int* dev_tablero, int numFila, in
         dev_tablero[pos_encontrar] = colorS;
         dev_index_RC[0] = 0;
     }
-    else
-    {
-        dev_index_RC[0] = 0;
-    }
 
 }
 
@@ -439,7 +439,7 @@ int* inicializarTablero(int* h_tablero, int size, int numCol, int numFila, int d
     //Copiamos datos a la GPU 
     cudaMemcpy(dev_Tablero, h_tablero, size * sizeof(int), cudaMemcpyHostToDevice);
 
-    unsigned int semilla = time(NULL);
+    int semilla = generarSemilla();
     dim3 dimGrid(gridX, gridY);
     dim3 dimBlock(hilosBloqueX, hilosBloqueY);
     kernelGenerarTablero << <dimGrid, dimBlock >> > (dev_Tablero, semilla, dificultad, numCol, numFila);
@@ -467,7 +467,7 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
     int pos_encontrar = coordX * numColumnas + coordY;   //Posicion a ENCONTRAR en el vector 1D
     int color = h_tablero[pos_encontrar];
 
-    unsigned int semilla = time(NULL);
+    int semilla = generarSemilla();
     //Reservar espacio en memoria para GPU (2 matrices y matriz resultado)
     cudaMalloc((void**)&dev_Tablero, size * sizeof(int));
     cudaMalloc((void**)&dev_index, sizeof(int));
@@ -541,11 +541,14 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
         kernelEncontrarBomba << <dimGrid, dimBlock >> > (dev_Tablero, numFilas, numColumnas, pos_encontrar, dev_index_fila, dev_index_col);
         cudaMemcpy(&h_index_fila, dev_index_fila, sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(&h_index_col, dev_index_col, sizeof(int), cudaMemcpyDeviceToHost);
+        dev_index_fila = 0;
+        dev_index_col = 0;
 
         kernelEncontrarRompecabezasTNT << <dimGrid, dimBlock >> > (dev_Tablero, numFilas, numColumnas, pos_encontrar, dev_index_RC, semilla, dificultad);
         cudaMemcpy(&h_index_RC, dev_index_RC, sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
         mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
+        dev_index_RC = 0;
 
     }
 
@@ -556,6 +559,7 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
     //Bucle para reemplazar las posiciones eliminadas mientras que se pueda hacer algun cambio y si no termine
     while (iteraciones > 0)
     {
+        semilla = generarSemilla();
         kernelReemplazarPosiciones << <dimGrid, dimBlock >> > (dev_Tablero, numFilas, numColumnas, semilla, dificultad, dev_index);
         cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);

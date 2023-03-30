@@ -499,10 +499,8 @@ void main(int argc, char* argv[])
         printf("Modo de juego seleccionado: %c \n", modoJuego);
         printf("\nIntroduzca el numero de filas que tendra el tablero:  \n");
         scanf("%d", &numFilas);
-        printf("NUMERO FILAS %d \n", numFilas);
         printf("\nIntroduzca el numero de columnas que tendra el tablero:  \n");
         scanf("%d", &numColumnas);
-        printf("NUMERO COLUMNAS %d \n", numColumnas);
         printf("\nIntroduzca la dificultad del juego:  \n");
         scanf("%d", &dificultad);
     }

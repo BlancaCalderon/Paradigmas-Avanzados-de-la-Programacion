@@ -385,6 +385,21 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
    // int id_fila_anterior = (bloqueX)*N + bloqueY;
     int id_fila_anterior = ((fila - 1)* gridDim.x) + col;
     int M = numCol;
+
+    /*
+    int bloque_fila_actual = (col) / TESELAX;
+    int bloque_col_actual = (fila) / TESELAY;
+    */
+
+    int bloque_fila_actual = (fila) / TESELAX;
+    int bloque_col_actual = (col) / TESELAY;
+
+    int bloque_arriba_y = (fila - 1) / TESELAY;         //Arriba -1 Fila
+    int bloque_abajo_y = (fila + 1) / TESELAY;         //Derecha +1
+    int bloque_izquierda_col = (col - 1) / TESELAX;     //Abajo +1 Fila
+    int bloque_derecha_col = (col + 1) / TESELAX;       //Izquierda -1
+    printf("Hilo [%d] -divido %d / %d\n", pos, fila-1, TESELAY);
+    
     if (numCol > numFila)
     {
         N = numCol;
@@ -393,46 +408,31 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
         pos = ((fila * N) + col);
         pos_arriba = ((fila-1 * N) + fila);
         id_general = bloqueY * N + bloqueX;
-        id_fila_anterior = (bloqueY - 1)*N + (bloqueX);
+        id_fila_anterior = (bloqueY - 1) * N + (bloqueX);
+        //Id bloque actual del hilo en X e Y
+        bloque_fila_actual = (fila) / TESELAY;
+        bloque_col_actual = (col) / TESELAX;
+       
+        bloque_arriba_y = (fila - 1) / TESELAY;         //Arriba -1 Fila
+        bloque_abajo_y = (fila + 1) / TESELAY;         //Derecha +1
+        bloque_izquierda_col = (col - 1) / TESELAX;     //Abajo +1 Fila
+        bloque_derecha_col = (col + 1) / TESELAX;       //Izquierda -1
 
     }
     int posAnterior = (pos - numCol)/dim;
 
-    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
-    int blockId_fila = (blockIdx.x - 1) + (blockIdx.y) * gridDim.x;
+  
 
-    int tileRow = blockId / (N / 2);
-    int tileCol = (blockId % (N / 2)) * 5;
-
-    int bloque_anterior = blockIdx.x - ((threadIdx.x + blockDim.x * threadIdx.y) == 0 ? 1 : 0);
-    int fila_anterior = fila - 1;
-    int indice_fila_anterior = fila_anterior* N + col;
-    int indice_bloque_anterior = bloque_anterior * blockDim.x * blockDim.y;
-    int previous_index = indice_bloque_anterior + indice_fila_anterior;
-
-    int tile_size_x = blockDim.x * gridDim.x; // ancho total de la tesela
-    int tile_size_y = blockDim.y * gridDim.y; // alto total de la tesela
-    int tile_x = blockIdx.x * blockDim.x; // posición x de la esquina superior izquierda de la tesela
-    int tile_y = blockIdx.y * blockDim.y; // posición y de la esquina superior izquierda de la teselab
-    int pos_x = threadIdx.x + tile_x; // posición x absoluta del hilo en la matriz
-    int pos_y = threadIdx.y + tile_y; // posición y absoluta del hilo en la matriz
-
-    int tile_idx_x = pos_x / tile_size_x; // índice x de la tesela a la que pertenece la posición
-    int tile_idx_y = pos_y / tile_size_y; // índice y de la tesela a la que pertenece la posición
-
-
-    int bloque_arriba_y = (fila - 1) / TESELAY;         //Arriba -1 Fila
-    int bloque_abajo_y = (fila +  1) / TESELAY;         //Derecha +1
-    int bloque_izquierda_col = (col - 1) / TESELAX;     //Abajo +1 Fila
-    int bloque_derecha_col = (col + 1) / TESELAX;       //Izquierda -1
-
-    //Id bloque actual del hilo en X e Y
-    int bloque_fila_actual = (fila) / TESELAY;
-    int bloque_col_actual = (col) / TESELAX;
     printf("Hilo [%d] - F[%d]C[%d]\n", pos, fila, col);
 
+    if (numFila > numCol) {
+        printf("Hilo [%d] - B (col, fila)=(%d, %d) Arriba[%d]\n", pos, bloque_col_actual, bloque_fila_actual, bloque_arriba_y);
+    }
+    else {
+        printf("Hilo [%d] - B (col, fila)=(%d, %d) Arriba[%d]\n", pos, bloque_col_actual, bloque_fila_actual, bloque_arriba_y);
+    }
 //    printf("Hilo [%d] - Id Bloques: Fila Actual[%d] Arriba[%d], Col actual[%d]Izquierda[%d]\n", pos, bloque_fila_actual, bloque_arriba_y,bloque_col_actual, bloque_izquierda_col);
-    printf("Hilo [%d] - B (col, fila)=(%d, %d) Arriba[%d]\n", pos, bloque_col_actual, bloque_fila_actual, bloque_arriba_y);
+   
     int id = threadIdx.x * dim + threadIdx.y;
     id = threadIdx.y * dim + threadIdx.x;
     int tamX = numFila;
@@ -822,7 +822,8 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
     int* h_index_fila = { 0 };
     int* h_index_RC = { 0 };
 
-    int pos_encontrar = coordX * numFilas + coordY;   //Posicion a ENCONTRAR en el vector 1D
+    //int pos_encontrar = coordX * numFilas + coordY;   //Posicion a ENCONTRAR en el vector 1D
+    int  pos_encontrar = coordX * numColumnas + coordY;
     if (numColumnas > numFilas)
     {
         pos_encontrar = coordX * numColumnas + coordY;   //Posicion a ENCONTRAR en el vector 1D   
@@ -1069,40 +1070,6 @@ void main(int argc, char* argv[])
     }
     else
     {
-        /*
-        int* (dev_Tablero), * (dev_index), * (dev_index_fila), * (dev_index_col), * (dev_index_RC), * (dev_hilos_x);
-        bool* dev_encontrado;
-        int size = numFilas * numColumnas;
-        bool h_encontrado = true;
-        int* h_index = { 0 };
-        int* h_index_col = { 0 };
-        int* h_index_fila = { 0 };
-        int* h_index_RC = { 0 };
-        unsigned int semilla = time(NULL);
-
-        //Reservar espacio en memoria para GPU (2 matrices y matriz resultado)
-        cudaMalloc((void**)&dev_Tablero, size * sizeof(int));
-        cudaMalloc((void**)&dev_index, sizeof(int));
-        cudaMalloc((void**)&dev_index_col, sizeof(int));
-        cudaMalloc((void**)&dev_index_fila, sizeof(int));
-        cudaMalloc((void**)&dev_index_RC, sizeof(int));
-        cudaMalloc((void**)&dev_hilos_x, sizeof(int));
-        cudaMalloc(&dev_encontrado, sizeof(bool));
-
-        //Copiamos datos a la GPU 
-        cudaMemcpy(dev_Tablero, h_tablero, size * sizeof(int), cudaMemcpyHostToDevice);
-        cudaMemcpy(dev_index, h_index, sizeof(int), cudaMemcpyHostToDevice);
-        cudaMemcpy(dev_index, h_index, sizeof(int), cudaMemcpyHostToDevice);
-
-        cudaMemcpy(dev_index_col, h_index_col, sizeof(int), cudaMemcpyHostToDevice);
-        cudaMemcpy(dev_index_fila, h_index_fila, sizeof(int), cudaMemcpyHostToDevice);
-        cudaMemcpy(dev_index_RC, h_index_RC, sizeof(int), cudaMemcpyHostToDevice);
-        cudaMemcpy(dev_encontrado, &h_encontrado, sizeof(bool), cudaMemcpyHostToDevice);
-        dim3 dimGrid(gridX, gridY);
-        dim3 dimBlock(TESELAX, TESELAY);
-        kernelReemplazarPosiciones << <dimGrid, dimBlock >> > (dev_Tablero, numFilas, numColumnas, semilla, dificultad, dev_index);
-        cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
-        */
         while (vida > 0)
         {
             

@@ -35,29 +35,29 @@ void mostrarTablero(int* tablero, int numFilas, int numColumnas, int dificultad)
 
     for (int i = 0; i < numFilas; i++)
     {
+	printf("__________________________________________________________ \n");
         for (int j = 0; j < numColumnas; j++)
         {
-            // printf("%d  ", tablero[i * N + j]);
-
             int num = tablero[i * N + j];
             if (num > dificultad)
             {
                 if (7 <= num && num <= 13)
                 {
-                    printf("RC%d  ", num % 7);
+                    printf("    RC%d   ||", num % 7);
                 }
                 else
                 {
-                    printf("%c  ", (char)num);
+                    printf("  %c   ||", (char)num);
                 }
             }
             else
             {
-                printf("%d  ", num);
+                printf("  %d   ||", num);
             }
 
         }
         printf("\n");
+	printf("__________________________________________________________ \n");
     }
     printf("\n");
 }
@@ -507,10 +507,8 @@ void main(int argc, char* argv[])
         printf("Modo de juego seleccionado: %c \n", modoJuego);
         printf("\nIntroduzca el numero de filas que tendra el tablero:  \n");
         scanf("%d", &numFilas);
-        printf("NUMERO FILAS %d \n", numFilas);
         printf("\nIntroduzca el numero de columnas que tendra el tablero:  \n");
         scanf("%d", &numColumnas);
-        printf("NUMERO COLUMNAS %d \n", numColumnas);
         printf("\nIntroduzca la dificultad del juego:  \n");
         scanf("%d", &dificultad);
     }

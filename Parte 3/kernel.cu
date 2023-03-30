@@ -36,32 +36,31 @@ void mostrarTablero(int* tablero, int numFilas, int numColumnas, int dificultad)
         M = numFilas;
     }
 
-    printf("Mostrar tablero - Valor de N = %d \n ", N);
     for (int i = 0; i < numFilas; i++)
     {
+	printf("__________________________________________________________ \n");
         for (int j = 0; j < numColumnas; j++)
         {
-            // printf("%d  ", tablero[i * N + j]);
-
             int num = tablero[i * N + j];
             if (num > dificultad)
             {
                 if (7 <= num && num <= 13)
                 {
-                    printf("RC%d  ", num % 7);
+                    printf("    RC%d   ||", num % 7);
                 }
                 else
                 {
-                    printf("%c  ", (char)num);
+                    printf("  %c   ||", (char)num);
                 }
             }
             else
             {
-                printf("%d  ", num);
+                printf("  %d   ||", num);
             }
 
         }
         printf("\n");
+	printf("__________________________________________________________ \n");
     }
     printf("\n");
 }
@@ -213,7 +212,6 @@ __global__ void kernelTNT(int* dev_tablero, int numFila, int numCol, int pos_enc
         //si posición actual es adyacente y esta dentro del rango que queremos borrar (4)
         if (filaBorrarIzq <= filaActual && filaActual <= filaBorrarDer && colBorrarArriba <= colActual && colActual <= colBorrarAbajo && 0 <= filaActual && filaActual < numFila && 0 <= colActual && colActual < numCol && pos < (numCol * numFila))
         {
-            printf("Hilo %d | id=%d | tablero compartido = %d | tablero normal = %d\n", pos, id, t_compartido[id], dev_tablero[pos]);
             t_compartido[id] = -1; //Indicamos que se borra
             mem_compartida = true;
         }
@@ -281,12 +279,6 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
     dev_index[0] = 0;
     int col = (blockIdx.x * blockDim.x) + threadIdx.x;
     int fila = (blockIdx.y * blockDim.y) + threadIdx.y;        //Posicion en la que nos encontramos
-
-    int sig_bloqueX = (blockIdx.x + 1) * blockDim.x;            //Posicion inicial de la columna del siguiente hilo del siguiente bloque
-    int sig_bloqueY = (blockIdx.y + 1) * blockDim.y;            //Posicion inicial de la fila del siguiente hilo en el siguiente bloque
-
-    int bloqueX = blockIdx.x * blockDim.x;                      // //Posicion inicial de la columna del primer hilo del blqoue actual
-    int bloqueY = blockIdx.y * blockDim.y;                      //Posicion inicial de la fila del primer hilo del blqoue actual
 
     int N = numFila;
     int dim = blockDim.x;
@@ -356,6 +348,7 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
                         t_compartido[id - TESELAX] = -1;
                         atomicAdd(&dev_index[0], 1);
                         mem = true;
+                        mem_compartida = true;
                     }
                     else if (t_compartido[id - TESELAX] != -1)
                     {
@@ -875,11 +868,8 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
 
             if (h_tablero[cont] == -1)
             {
-                kernelEncontrarCaminos << <dimGrid, dimBlock >> > (dev_Tablero, numFilas, numColumnas, dev_index, cont, dev_encontrado, color);
-                cudaMemcpy(&h_encontrado, dev_encontrado, sizeof(bool), cudaMemcpyDeviceToHost);
-                cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
-                cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
-                mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
+                pos_encontrar = cont;
+                h_encontrado = 1;
             }
             cont += 1;
         }
@@ -939,7 +929,7 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
 void main(int argc, char* argv[])
 {
     //Declaracion variables
-    //int* h_tablero;
+    int* h_tablero;
     int numFilas = 0;
     int numColumnas = 0;
     int coordenadaX;
@@ -963,7 +953,7 @@ void main(int argc, char* argv[])
 
     
    // int h_tablero[16] = { 3,3,3,3,4,3,3,4,3,1,4,3,'B',3,1,3};
-   int h_tablero[27] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,3,3,3,4,3,3,3,4,3,3,4,3,4,4 };
+  // int h_tablero[27] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,3,3,3,4,3,3,3,4,3,3,4,3,4,4 };
     //int h_tablero[27] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,'T',3,3,4,3,3,3,4,3,3,4,3,4,'T' };
     // int h_tablero[25] = { 3,2,1,5,5,3,3,6,7,3,9,3,'B',3,1,3,1,3,3,3,4,1,1,4,3 };
      //Mostramos el tablero
@@ -1011,20 +1001,23 @@ void main(int argc, char* argv[])
     }
     size = numFilas * numColumnas;
 
-    //Calcula bloques e hilos optimos para el tamaño de nuestra matriz
-    int hilosBloqueX = ceil(numColumnas / (float)2);
-    int hilosBloqueY = ceil(numFilas / (float)2);
+   int hilosBloqueX = ceil(numColumnas / (float)2);
+   int hilosBloqueY = ceil(numFilas / (float)2);
+    if (numColumnas > TESELAX && numFilas > TESELAY) {
+        hilosBloqueX = ceil(numColumnas / TESELAX);
+        hilosBloqueY = ceil(numFilas / TESELAY);
+    }
     int gridX = ceil(numColumnas / (float)hilosBloqueX);
     int gridY = ceil(numFilas / (float)hilosBloqueY);
 
-
+    printf("dimBlock(%d, %d), dimGrid(%d, %d): ", hilosBloqueX, hilosBloqueY, gridX, gridY);
     //Pasamos a memoria constante el numero de filas y columnas introducidas por el usuario
 
     //Reservamos memoria para el tablero, ya que no esta inicializado
-   // h_tablero = (int*)malloc(numFilas * numColumnas * sizeof(int));
+    h_tablero = (int*)malloc(numFilas * numColumnas * sizeof(int));
 
     //Llamamos a la funcion que inicializa con valores aleatorios el tablero
-    //h_tablero = inicializarTablero(h_tablero, size, numColumnas, numFilas, dificultad, hilosBloqueX, hilosBloqueY, gridX, gridY);
+    h_tablero = inicializarTablero(h_tablero, size, numColumnas, numFilas, dificultad, hilosBloqueX, hilosBloqueY, gridX, gridY);
     mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
 
     if (hilosBloqueX >= maxBlockx && hilosBloqueY >= maxBlocky && gridX > maxGridX && gridY > maxGridY)

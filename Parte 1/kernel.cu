@@ -96,7 +96,7 @@ __global__ void kernelTNT(int* dev_tablero, int numFila, int numCol, int pos_enc
     int colBorrarArriba = colBorrar - 4;
 
     //si posición actual es adyacente y esta dentro del rango que queremos borrar (4)
-    if (filaBorrarIzq <= filaActual <= filaBorrarDer && colBorrarArriba <= colActual <= colBorrarAbajo && 0 <= filaActual <= numFila && 0 <= colActual <= numCol)
+    if (filaBorrarIzq <= filaActual && filaActual <= filaBorrarDer && colBorrarArriba <= colActual && colActual <= colBorrarAbajo && 0 <= filaActual && filaActual < numFila && 0 <= colActual  && colActual < numCol && pos < (numCol * numFila))
     {
         dev_tablero[pos] = -1; //Indicamos que se borra
     }

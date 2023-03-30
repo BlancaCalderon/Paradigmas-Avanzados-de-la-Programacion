@@ -10,12 +10,6 @@
 #include <curand_kernel.h>
 #include <device_functions.h>
 
-
-
-//define numero de filas y columnas del tablero (CUIDADO CAMBIAR A COGER POR CONSOLA QUE FILAS SE QUIERE)
-__constant__ int* FILAS;
-__constant__ int* COLUMNAS;
-
 int vida = 5;
 
 //Funcion que muestra el tablero por consola
@@ -23,13 +17,16 @@ void mostrarTablero(int* tablero, int numFilas, int numColumnas, int dificultad)
 {
     int N = numFilas;
     int M = numColumnas;
-    if (numColumnas > numFilas) {
+
+    if (numFilas > numColumnas || numColumnas > numFilas) 
+    {
         N = numColumnas;
         M = numFilas;
     }
-    for (int i = 0; i < M; i++)
+
+    for (int i = 0; i < numFilas; i++)
     {
-        for (int j = 0; j < N; j++)
+        for (int j = 0; j < numColumnas; j++)
         {
             // printf("%d  ", tablero[i * N + j]);
 
@@ -62,12 +59,13 @@ __global__ void kernelBomba(int* dev_tablero, int numFila, int numCol, int pos_e
     int col = (blockIdx.x * blockDim.x) + threadIdx.x;
     int fila = (blockIdx.y * blockDim.y) + threadIdx.y;        //Posicion en la que nos encontramos
     int N = numFila;
+    int pos = ((col * N) + fila);
     if (numCol > numFila)
     {
         N = numCol;
+        pos = ((fila * N) + col);
     }
-    int pos = ((col * N) + fila);
-
+   
     //Calcula fila y columna de la posición actual
     int filaActual = pos / numCol;
     int colActual = pos - filaActual * numCol;
@@ -76,7 +74,7 @@ __global__ void kernelBomba(int* dev_tablero, int numFila, int numCol, int pos_e
     int filaBorrar = pos_encontrar / numCol;
     int colBorrar = pos_encontrar - filaBorrar * numCol;
 
-    if (numFila > col && numCol > fila)
+    if (numFila > fila && numCol > col)
     {
         //si posición actual esta en la fila o columna que queremos borrar
         if (filaBorrar == filaActual || colBorrar == colActual && 0 <= filaActual <= numFila && 0 <= colActual <= numCol && (pos < numCol * numFila))
@@ -95,13 +93,14 @@ __global__ void kernelTNT(int* dev_tablero, int numFila, int numCol, int pos_enc
     int col = (blockIdx.x * blockDim.x) + threadIdx.x;
     int fila = (blockIdx.y * blockDim.y) + threadIdx.y;        //Posicion en la que nos encontramos
     int N = numFila;
+    int pos = ((col * N) + fila);
     if (numCol > numFila)
     {
         N = numCol;
+        pos = ((fila * N) + col);
     }
-    int pos = ((col * N) + fila);
 
-    if (numFila > col && numCol > fila)
+    if (numFila > fila && numCol > col)
     {
         //Calcula fila y columna de la posición actual
         int filaActual = pos / numCol;
@@ -117,7 +116,7 @@ __global__ void kernelTNT(int* dev_tablero, int numFila, int numCol, int pos_enc
         int colBorrarArriba = colBorrar - 4;
 
         //si posición actual es adyacente y esta dentro del rango que queremos borrar (4)
-        if (filaBorrarIzq <= filaActual <= filaBorrarDer && colBorrarArriba <= colActual <= colBorrarAbajo && 0 <= filaActual <= numFila && 0 <= colActual <= numCol && pos < (numCol * numFila))
+        if (filaBorrarIzq <= filaActual && filaActual <= filaBorrarDer && colBorrarArriba <= colActual && colActual <= colBorrarAbajo && 0 <= filaActual && filaActual < numFila && 0 <= colActual  && colActual < numCol && pos < (numCol * numFila))
         {
             dev_tablero[pos] = -1; //Indicamos que se borra
         }
@@ -166,22 +165,18 @@ __global__ void kernelGenerarTablero(int* dev_tablero, int dev_semilla, int difi
 {
     int col = (blockIdx.x * blockDim.x) + threadIdx.x;
     int fila = (blockIdx.y * blockDim.y) + threadIdx.y;        //Posicion en la que nos encontramos
-
     int N = numFila;
-
+    int pos = ((col * N) + fila);
     if (numCol > numFila)
     {
         N = numCol;
+        pos = ((fila * N) + col);
     }
-    int pos = ((col * N) + fila);
-
-    if (numFila > col && numCol > fila)
+    if (numFila > fila && numCol > col)
     {
-
         curandState_t state;
         curand_init(dev_semilla, pos, 0, &state); //curand_init(semilla, secuencia, offset, estado) secuencia dgenera diferentes secuencias de numeros aleatorio a partir de la misma semilla y offset genera numeros aleatorio s a partir de una secuencia y una semilla  CurandState curandState;
         dev_tablero[pos] = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
-        printf("He entrado %d coloorr %d \n", pos);
     }
 }
 
@@ -192,14 +187,14 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
     int col = (blockIdx.x * blockDim.x) + threadIdx.x;
     int fila = (blockIdx.y * blockDim.y) + threadIdx.y;        //Posicion en la que nos encontramos
     int N = numFila;
-
+    int pos = ((col * N) + fila);
     if (numCol > numFila)
     {
         N = numCol;
+        pos = ((fila * N) + col);
     }
-    int pos = ((col * N) + fila);
 
-    if (dev_tablero[pos] == -1 && numFila > col && numCol > fila)
+    if (dev_tablero[pos] == -1 && numFila > fila && numCol > col)
     {
 
         int filaActual = pos / numCol;
@@ -215,7 +210,6 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
             curandState_t state;
             curand_init(dev_semilla, pos, 0, &state); //curand_init(semilla, secuencia, offset, estado) secuencia dgenera diferentes secuencias de numeros aleatorio a partir de la misma semilla y offset genera numeros aleatorio s a partir de una secuencia y una semilla  CurandState curandState;
             int color = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
-            printf("COLOR %d\n", color);
             dev_tablero[pos] = color;
             atomicAdd(&dev_index[0], 1);
         }
@@ -228,13 +222,13 @@ __global__ void kernelEncontrarCaminos(int* dev_tablero, int numFila, int numCol
     int col = (blockIdx.x * blockDim.x) + threadIdx.x;
     int fila = (blockIdx.y * blockDim.y) + threadIdx.y;        //Posicion en la que nos encontramos
     int N = numFila;
-
+    int pos = ((col * N) + fila);
     if (numCol > numFila)
     {
         N = numCol;
+        pos = ((fila * N) + col);
     }
 
-    int pos = ((col * N) + fila);
     bool encontrado = false;
     bool camino_invalido = false;
     int posAux;
@@ -244,9 +238,8 @@ __global__ void kernelEncontrarCaminos(int* dev_tablero, int numFila, int numCol
     int filaActual = pos / numCol;
     int colActual = pos - filaActual * numCol;
     int ultima_posicion = pos;
-    __shared__ int* tablero_compartido;
 
-    if ((dev_tablero[pos] == color || dev_tablero[pos] == -1) && pos_encontrar == pos && (numFila > col) && (numCol > fila))
+    if ((dev_tablero[pos] == color || dev_tablero[pos] == -1) && pos_encontrar == pos && (numFila > fila) && (numCol > col))
     {
         printf("Hilo %d ha entrado a buscar camino [%d][%d]\n", pos, col, fila);
         encontrado = false;
@@ -288,7 +281,7 @@ __global__ void kernelEncontrarCaminos(int* dev_tablero, int numFila, int numCol
                 dev_tablero[posAux] = -1;
                 printf("\nAvanza a la pos de ABAJO [%d] ultima posicion %d hilo %d", posAux + numCol, posAux, pos);
             }
-            else if (color == dev_tablero[posAux - 1] && col_anterior >= 0 && (col_anterior < numCol - 1) &&  (posAux - 1) != ultima_posicion)           //Izquierda
+            else if (color == dev_tablero[posAux - 1] && col_anterior >= 0 && (col_anterior < numCol - 1) && (posAux - 1) != ultima_posicion)           //Izquierda
             {
                 index += 1;
                 ultima_posicion = posAux;
@@ -297,7 +290,7 @@ __global__ void kernelEncontrarCaminos(int* dev_tablero, int numFila, int numCol
 
                 dev_tablero[posAux] = -1;
             }
-            else if (color == dev_tablero[posAux - numCol] && (posAux - numCol) >= 0 && filaActual >= 0 && filaActual <= numFila && (posAux - numCol) != ultima_posicion)  //ARRIBA
+            else if (color == dev_tablero[posAux - numCol] && (posAux - numCol) >= 0 && filaActual > 0 && filaActual <= numFila && (posAux - numCol) != ultima_posicion)  //ARRIBA
             {
 
                 index += 1;
@@ -343,13 +336,12 @@ __global__ void kernelEncontrarBomba(int* dev_tablero, int numFila, int numCol, 
     int col = (blockIdx.x * blockDim.x) + threadIdx.x;
     int fila = (blockIdx.y * blockDim.y) + threadIdx.y;        //Posicion en la que nos encontramos
     int N = numFila;
-
+    int pos = ((col * N) + fila);
     if (numCol > numFila)
     {
         N = numCol;
+        pos = ((fila * N) + col);
     }
-
-    int pos = ((col * N) + fila);
 
     //Calcula fila y columna de la posición actual
     int filaActual = pos / numCol;
@@ -359,7 +351,7 @@ __global__ void kernelEncontrarBomba(int* dev_tablero, int numFila, int numCol, 
     int filaEncontrar = pos_encontrar / numCol;
     int colEncontrar = pos_encontrar - filaEncontrar * numCol;
 
-    if (filaActual == filaEncontrar && (int)dev_index_fila > 5 && dev_tablero[pos] == -1 && (numFila > col) && (numCol > fila))
+    if (filaActual == filaEncontrar && (int)dev_index_fila > 5 && dev_tablero[pos] == -1 && (numFila > fila) && (numCol > col))
     {
         atomicAdd(&dev_index_fila[0], 1);
     }
@@ -376,7 +368,14 @@ __global__ void kernelEncontrarBomba(int* dev_tablero, int numFila, int numCol, 
         if ((dev_index_fila[0] == 5 && dev_index_col[0] == 1) || (dev_index_col[0] == 5 && dev_index_fila[0] == 1))
         {
             dev_tablero[pos_encontrar] = 'B';
+            dev_index_fila[0] = 0;
+            dev_index_col[0] = 0;
         }
+    }
+    else
+    {
+        dev_index_fila[0] = 0;
+        dev_index_col[0] = 0;
     }
 }
 
@@ -385,13 +384,12 @@ __global__ void kernelEncontrarRompecabezasTNT(int* dev_tablero, int numFila, in
     int col = (blockIdx.x * blockDim.x) + threadIdx.x;
     int fila = (blockIdx.y * blockDim.y) + threadIdx.y;        //Posicion en la que nos encontramos
     int N = numFila;
-
+    int pos = ((col * N) + fila);
     if (numCol > numFila)
     {
         N = numCol;
+        pos = ((fila * N) + col);
     }
-
-    int pos = ((col * N) + fila);
 
     //Calcula fila y columna de la posición actual
     int filaActual = pos / numCol;
@@ -401,18 +399,16 @@ __global__ void kernelEncontrarRompecabezasTNT(int* dev_tablero, int numFila, in
     int filaEncontrar = pos_encontrar / numCol;
     int colEncontrar = pos_encontrar - filaEncontrar * numCol;
 
-    printf("hilo %d valor %d\n", pos, dev_tablero[pos]);
     if (dev_tablero[pos] == -1)
     {
-        printf("Entro hilo %d e incremento %D\n",pos, dev_index_RC[0]);
         atomicAdd(&dev_index_RC[0], 1);
     }
     __syncthreads();
 
-    printf("Contador TNT - RC %d\n", dev_index_RC[0]);
     if (dev_index_RC[0] == 6 && pos == pos_encontrar)
     {
         dev_tablero[pos_encontrar] = 'T';
+        dev_index_RC[0] = 0;
     }
     else if (dev_index_RC[0] >= 7 && pos == pos_encontrar)
     {
@@ -421,6 +417,11 @@ __global__ void kernelEncontrarRompecabezasTNT(int* dev_tablero, int numFila, in
         int color = abs((int)(curand(&state) % dificultad) + 1);  //Rellena tablero con numeros aleatorios entre 1 y 6
         int colorS = 7 + color;
         dev_tablero[pos_encontrar] = colorS;
+        dev_index_RC[0] = 0;
+    }
+    else
+    {
+        dev_index_RC[0] = 0;
     }
 
 }
@@ -463,16 +464,10 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
     int* h_index_fila = { 0 };
     int* h_index_RC = { 0 };
 
-    int pos_encontrar = coordX * numFilas + coordY;   //Posicion a ENCONTRAR en el vector 1D
-    if (numColumnas > numFilas)
-    {
-        pos_encontrar = coordX * numColumnas + coordY;   //Posicion a ENCONTRAR en el vector 1D   
-    }
-
+    int pos_encontrar = coordX * numColumnas + coordY;   //Posicion a ENCONTRAR en el vector 1D
     int color = h_tablero[pos_encontrar];
 
     unsigned int semilla = time(NULL);
-    printf("Posicion a ENCONTRAR %d\n", pos_encontrar);
     //Reservar espacio en memoria para GPU (2 matrices y matriz resultado)
     cudaMalloc((void**)&dev_Tablero, size * sizeof(int));
     cudaMalloc((void**)&dev_index, sizeof(int));
@@ -511,7 +506,6 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
     {
         int colorBorrar = contenido % 7;
         kernelRompeCabezas << <dimGrid, dimBlock >> > (dev_Tablero, numFilas, numColumnas, colorBorrar, pos_encontrar);
-        printf("COLOrrr %d \n", colorBorrar);
         cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
     }
     else //Si es bloque simple
@@ -520,7 +514,6 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
         //Desde posición idicada se encuentran todos los caminos con el mismo color
         while (cont < numColumnas * numFilas)
         {
-            printf("contador %d \n", cont);
             while (h_encontrado)
             {
 
@@ -528,18 +521,12 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
                 cudaMemcpy(&h_encontrado, dev_encontrado, sizeof(bool), cudaMemcpyDeviceToHost);
                 cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
                 cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
-                printf("Valor del puntero %d \n", h_encontrado);
-                printf("H_inxex %d\n", h_index);
-                //mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
             }
 
             if (h_tablero[cont] == -1)
             {
-                kernelEncontrarCaminos << <dimGrid, dimBlock >> > (dev_Tablero, numFilas, numColumnas, dev_index, cont, dev_encontrado, color);
-                cudaMemcpy(&h_encontrado, dev_encontrado, sizeof(bool), cudaMemcpyDeviceToHost);
-                cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
-                cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
-                // mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
+                pos_encontrar = cont;
+                h_encontrado = 1;
             }
             cont += 1;
         }
@@ -555,17 +542,14 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
         cudaMemcpy(&h_index_fila, dev_index_fila, sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(&h_index_col, dev_index_col, sizeof(int), cudaMemcpyDeviceToHost);
 
-        printf("N Filas %d - N Columnas %d \n", h_index_fila, h_index_col);
-        mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
-
         kernelEncontrarRompecabezasTNT << <dimGrid, dimBlock >> > (dev_Tablero, numFilas, numColumnas, pos_encontrar, dev_index_RC, semilla, dificultad);
         cudaMemcpy(&h_index_RC, dev_index_RC, sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
         mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
 
     }
-    mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
 
+    mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
 
     h_index = { 0 };
     int iteraciones = 10;
@@ -577,30 +561,29 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
         cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
         iteraciones = (int)h_index;
     }
-    mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
-
     cudaFree(dev_encontrado);
     cudaFree(dev_Tablero);
     cudaFree(dev_index);
     cudaFree(dev_index_fila);
     cudaFree(dev_index_col);
     cudaFree(dev_index_RC);
+
     return vida;
 }
 
 void main(int argc, char* argv[])
 {
     //Declaracion variables
-    //int* h_tablero;
-    int numFilas = 3;
-    int numColumnas = 9;
+    int* h_tablero;
+    int numFilas = 0;
+    int numColumnas = 0;
     int coordenadaX;
     int coordenadaY;
-    int size = numFilas * numColumnas;
-    int dificultad = 4;
-    bool terminado = false;
-    int vida = 5;
+    int size = 0;
+    int dificultad = 0;
     char modoJuego = 'A';
+
+    //Saca las caracteristicas de nuestra tarjeta grafica
     cudaDeviceProp deviceProp;
     cudaGetDeviceProperties(&deviceProp, 0);
     char* nombre = deviceProp.name;
@@ -611,35 +594,11 @@ void main(int argc, char* argv[])
     int maxGridX = deviceProp.maxThreadsDim[0];
     int maxGridY = deviceProp.maxThreadsDim[1];
 
-    printf("Nombre del Device: %s\n", deviceProp.name);
-    printf("Num maximo de hilos por bloque: %d\n", deviceProp.maxThreadsPerBlock);
-    printf("Num maximo de bloque s: %d\n", maxBlockx);
-    printf("Dimensiones maximas para organizar los hilos en bloques (%d, %d, %d):\n", deviceProp.maxThreadsDim[0], deviceProp.maxThreadsDim[1], deviceProp.maxThreadsDim[2]);
-    printf("Dimensiones maximas para organizar los bloques en el grid (%d, %d, %d):\n", deviceProp.maxGridSize[0], deviceProp.maxGridSize[1], deviceProp.maxGridSize[2]);
-
-    int hilosBloqueX = ceil(numFilas / (float)2);
-    int hilosBloqueY = ceil(numColumnas / (float)2);
-    int gridX = ceil(numFilas / (float)hilosBloqueX);
-    int gridY = ceil(numColumnas / (float)hilosBloqueY);
-    printf("dimBlock(%d, %d), dimGrid(%d, %d): ", hilosBloqueX, hilosBloqueY, gridX, gridY);
-
-    //Pasamos a memoria constante el numero de filas y columnas introducidas por el usuario
-    cudaMemcpyToSymbol(FILAS, &numFilas, sizeof(int));
-    cudaMemcpyToSymbol(COLUMNAS, &numColumnas, sizeof(int));
-
-    //Reservamos memoria para el tablero, ya que no esta inicializado
-    //int* h_tablero = (int*)malloc(numFilas * numColumnas * sizeof(int));
-
-    //Llamamos a la funcion que inicializa con valores aleatorios el tablero
-    //h_tablero = inicializarTablero(h_tablero, size, numColumnas, numFilas, dificultad, hilosBloqueX, hilosBloqueY, gridX, gridY);
     //int h_tablero[25] = { 3,3,3,3,4,3,3,4,3,1,4,3,'B',3,1,3,1,3,3,3,4,1,1,4,3};
+    //int h_tablero[50] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,3,3,3,4,3,3,3,4,3,'T',4,3,4,4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3};
     //int h_tablero[27] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,3,3,3,4,3,3,3,4,3,3,4,3,4,4 };
-     int h_tablero[27] = { 3,3,3,3,3,3,3,4,4,4,4,3,1,3,3,3,4,3,3,3,4,3,3,4,3,4,4 };
     // int h_tablero[25] = { 3,2,1,5,5,3,3,6,7,3,9,3,'B',3,1,3,1,3,3,3,4,1,1,4,3 };
-     //Mostramos el tablero
-
-
-
+    
      //Codigo para ejecutar programa y recibir datos por comando
      //Controla que no de error la llamada
     if (argc == 1)  //No se ha ejecutado por comando
@@ -647,7 +606,12 @@ void main(int argc, char* argv[])
         printf("\nElija el modo de juego: A (Automatico) - M (Manual):  \n");
         scanf("%c", &modoJuego);
         printf("Modo de juego seleccionado: %c \n", modoJuego);
-        mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
+        printf("\nIntroduzca el numero de filas que tendra el tablero:  \n");
+        scanf("%d", &numFilas);
+        printf("\nIntroduzca el numero de columnas que tendra el tablero:  \n");
+        scanf("%d", &numColumnas);
+        printf("\nIntroduzca la dificultad del juego:  \n");
+        scanf("%d", &dificultad);
     }
 
     else if (argc == -1)
@@ -672,8 +636,24 @@ void main(int argc, char* argv[])
         dificultad = std::stoi(argv[2]);    //Guarda valor argumentos usando funcion stoi para convertirlo a int
         numFilas = std::stoi(argv[3]);
         numColumnas = std::stoi(argv[4]);
-
     }
+
+    size = numFilas * numColumnas;
+
+    //Calcula el numero de hilos y bloques mas optimo para el tamaño de la matriz dado
+    int hilosBloqueX = ceil(numColumnas / (float)2);
+    int hilosBloqueY = ceil(numFilas / (float)2);
+    int gridX = ceil(numColumnas / (float)hilosBloqueX);
+    int gridY = ceil(numFilas / (float)hilosBloqueY);
+
+    //Reservamos memoria para el tablero, ya que no esta inicializado
+    h_tablero = (int*)malloc(size * sizeof(int));
+
+    //Llamamos a la funcion que inicializa con valores aleatorios el tablero
+    h_tablero = inicializarTablero(h_tablero, size, numColumnas, numFilas, dificultad, hilosBloqueX, hilosBloqueY, gridX, gridY);
+    mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
+
+    //Se comprueba que se cumplan los limites de la tarjeta grafica
     if (hilosBloqueX >= maxBlockx && hilosBloqueY >= maxBlocky && gridX > maxGridX && gridY > maxGridY)
     {
         printf("\nSe sobrepasan las dimensiones asociadas a la tarjeta grafica  \n");
@@ -698,18 +678,19 @@ void main(int argc, char* argv[])
             {
                 vida = encontrarCamino(h_tablero, numFilas, numColumnas, coordenadaX, coordenadaY, dificultad, vida, hilosBloqueX, hilosBloqueY, gridX, gridY);
                 printf("\nVida restante: %d \n", vida);
+                mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
             }
             else
             {
                 printf("\nLas coordenadas introducidas se encuentran fuera del rango del tablero [%d][%d] \n", numFilas, numColumnas);
             }
-
-
         }
         printf("\nPERDEDOR \n");
     }
 
 }
+
+
 
 
 

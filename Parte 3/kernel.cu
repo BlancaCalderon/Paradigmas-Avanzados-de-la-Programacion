@@ -269,11 +269,11 @@ __global__ void kernelRompeCabezas(int* dev_tablero, int numFila, int numCol, in
             mem = true;
         }
         __syncthreads(); //Esperamos a que todos los hilos del mismo bloque hayan ejecutado el if antes de establecer la posicion a encontrar en -1
-        if (mem == true) 
+        if (mem == true)
         {
             dev_tablero[pos] = t_compartido[id];              //Eliminamos bloque especial
         }
-        
+
     }
 
 }
@@ -337,7 +337,7 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
         bool mem_compartida = false;
         if (bloque_arriba_y == bloque_fila_actual)
         {
-            
+
             if (t_compartido[id] == -1)
             {
                 if ((id - TESELAX) > 0)// && ((id - TESELAX)* (TESELAX)+threadIdx.x) < numCol && ((id - TESELAX)* TESELAY + threadIdx.y) < numFila)
@@ -359,7 +359,7 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
                         atomicAdd(&dev_index[0], 1);
                         mem_compartida = true;
                     }
-                    
+
                 }
                 else
                 {
@@ -380,11 +380,11 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
             if (mem_compartida == true) {
                 dev_tablero[pos] = t_compartido[id];
             }
-            
+
         }
         else if (dev_tablero[pos] == -1)
         {
-            
+
             if (filaActual > 0 && filaActual <= numFila && dev_tablero[pos - numCol] != -1)
             {
                 dev_tablero[pos] = dev_tablero[pos - numCol];
@@ -489,7 +489,7 @@ __global__ void kernelEncontrarCaminos(int* dev_tablero, int numFila, int numCol
             int fila_actual = posAux / numCol;
             int col_actual = posAux - fila_actual * numCol;
 
-            if (bloque_derecha_x == bloque_col_actual && (posId + 1) < tam_tesela && t_compartido[posId + 1] == color && sigcol > 0 && (posAux + 1) != ultima_posicion && ((posId + 1) * (TESELAX)+threadIdx.x) < numCol && ((posId+1) * TESELAY + threadIdx.y) < numFila)   //DERECHA memoria compartida
+            if (bloque_derecha_x == bloque_col_actual && (posId + 1) < tam_tesela && t_compartido[posId + 1] == color && sigcol > 0 && (posAux + 1) != ultima_posicion && ((posId + 1) * (TESELAX)+threadIdx.x) < numCol && ((posId + 1) * TESELAY + threadIdx.y) < numFila)   //DERECHA memoria compartida
             {
                 index = index + 1;
                 ultima_posicion = posAux;
@@ -546,7 +546,7 @@ __global__ void kernelEncontrarCaminos(int* dev_tablero, int numFila, int numCol
                 dev_tablero[posAux] = -1;
                 posAux = posAux - 1;
             }
-            else if (bloque_arriba_y == bloque_fila_actual && (posId - TESELAX) > 0 && color == t_compartido[posId - TESELAX] && (posAux - numCol) >= 0 && filaActual >= 0 && filaActual <= numFila && (posAux - numCol) != ultima_posicion && ((posId-TESELAX) * (TESELAX)+threadIdx.x) < numCol && ((posId - TESELAX) * TESELAY + threadIdx.y) < numFila)    //Arriba memoria compartida
+            else if (bloque_arriba_y == bloque_fila_actual && (posId - TESELAX) > 0 && color == t_compartido[posId - TESELAX] && (posAux - numCol) >= 0 && filaActual >= 0 && filaActual <= numFila && (posAux - numCol) != ultima_posicion && ((posId - TESELAX) * (TESELAX)+threadIdx.x) < numCol && ((posId - TESELAX) * TESELAY + threadIdx.y) < numFila)    //Arriba memoria compartida
             {
 
                 index += 1;
@@ -706,7 +706,7 @@ __global__ void kernelEncontrarRompecabezasTNT(int* dev_tablero, int numFila, in
             mem_compartida = true;
         }
         __syncthreads();
-        if (mem_compartida == true) 
+        if (mem_compartida == true)
         {
             dev_tablero[pos] = t_compartido[id];
         }
@@ -755,7 +755,7 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
 
     //int pos_encontrar = coordX * numFilas + coordY;   //Posicion a ENCONTRAR en el vector 1D
     int  pos_encontrar = coordX * numColumnas + coordY;
-    
+
     int color = h_tablero[pos_encontrar];
 
     int semilla = generarSemilla();
@@ -935,15 +935,20 @@ void main(int argc, char* argv[])
     }
     size = numFilas * numColumnas;
 
-   int hilosBloqueX = ceil(numColumnas / (float)2);
-   int hilosBloqueY = ceil(numFilas / (float)2);
+    int hilosBloqueX = ceil(numColumnas / (float)2);
+    int hilosBloqueY = ceil(numFilas / (float)2);
 
-    if (numColumnas > TESELAX && numFilas > TESELAY) {
+    if (numColumnas > TESELAX && numFilas > TESELAY && numColumnas > numFilas) {
+        hilosBloqueX = ceil(numColumnas / TESELAY);
+        hilosBloqueY = ceil(numFilas / TESELAX);
+    }
+    else if (numColumnas > TESELAX && numFilas > TESELAY && numFilas > numColumnas) {
         hilosBloqueX = ceil(numColumnas / TESELAX);
         hilosBloqueY = ceil(numFilas / TESELAY);
     }
+
     int gridX = ceil(numColumnas / (float)hilosBloqueX);
-    int gridY = ceil(numFilas / (float)hilosBloqueY);
+    int gridY = ceil(numFilas / (float) hilosBloqueY);
 
     printf("dimBlock(%d, %d), dimGrid(%d, %d): \n", hilosBloqueX, hilosBloqueY, gridX, gridY);
     //Pasamos a memoria constante el numero de filas y columnas introducidas por el usuario

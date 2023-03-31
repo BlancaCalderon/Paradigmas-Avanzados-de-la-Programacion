@@ -72,7 +72,7 @@ __global__ void kernelBomba(int* dev_tablero, int numFila, int numCol, int pos_e
         N = numCol;
         pos = ((fila * numCol) + col);                         //El calculo de la posicion variara en funcion de las dimensiones de la matriz
     }
-   
+
     //Calcula fila y columna a borrar
     int filaBorrar = pos_encontrar / numCol;                //Calculamos la fila en la que se encuentra la posicion a encontrar
     int colBorrar = pos_encontrar - filaBorrar * numCol;    //Calculamos la columna en la que se encuentra la posicion a encontrar
@@ -113,7 +113,7 @@ __global__ void kernelTNT(int* dev_tablero, int numFila, int numCol, int pos_enc
         int colBorrarArriba = colBorrar - 4;
 
         //si posición actual es adyacente y esta dentro del rango que queremos borrar (4)
-        if (filaBorrarIzq <= fila && fila <= filaBorrarDer && colBorrarArriba <= col && col <= colBorrarAbajo && 0 <= fila && fila < numFila && 0 <= col  && col < numCol && pos < (numCol * numFila))
+        if (filaBorrarIzq <= fila && fila <= filaBorrarDer && colBorrarArriba <= col && col <= colBorrarAbajo && 0 <= fila && fila < numFila && 0 <= col && col < numCol && pos < (numCol * numFila))
         {
             dev_tablero[pos] = -1; //Indicamos que se borra
         }
@@ -186,7 +186,7 @@ __global__ void kernelReemplazarPosiciones(int* dev_tablero, int numFila, int nu
         N = numCol;
         pos = ((fila * numCol) + col);                         //El calculo de la posicion variara en funcion de las dimensiones de la matriz
     }
-                      
+
     if (dev_tablero[pos] == -1 && numFila > fila && numCol > col)   //Comprobamos que la posicion que nos llega sea -1 en el tablero y que el hiloeste dentro de las dimensiones de la matriz
     {
 
@@ -347,7 +347,7 @@ __global__ void kernelEncontrarBomba(int* dev_tablero, int numFila, int numCol, 
             dev_index_col[0] = 0;
         }
     }
-    
+
 }
 
 /* Kernel que genera un Rompecabezas RC y un TNT */
@@ -432,7 +432,6 @@ int jugar(int* h_tablero_original, int numFilas, int numColumnas, int coordX, in
 
     int pos_encontrar = coordX * numColumnas + coordY;   //Posicion a ENCONTRAR en el vector 1D
     int color = h_tablero[pos_encontrar];
-
     int semilla = generarSemilla();
     //Reservar espacio en memoria para GPU (2 matrices y matriz resultado)
     cudaMalloc((void**)&dev_Tablero, size * sizeof(int));
@@ -496,6 +495,7 @@ int jugar(int* h_tablero_original, int numFilas, int numColumnas, int coordX, in
             }
             cont += 1;
         }
+
         if ((int)h_index == 0 && vida >= 1)
         {
             vida = vida - 1;
@@ -514,8 +514,6 @@ int jugar(int* h_tablero_original, int numFilas, int numColumnas, int coordX, in
         dev_index_RC = 0;
 
     }
-
-
     h_index = { 0 };
     int iteraciones = 10;
     //Bucle para reemplazar las posiciones eliminadas mientras que se pueda hacer algun cambio y si no termine
@@ -632,7 +630,7 @@ void main(int argc, char* argv[])
             {
                 coordenadaX = (rand() % numFilas);
                 coordenadaY = (rand() % numColumnas);
- 
+
             }
 
             if ((coordenadaX < numFilas) && (coordenadaY < numColumnas) && (coordenadaX >= 0) && (coordenadaY >= 0))
@@ -650,8 +648,4 @@ void main(int argc, char* argv[])
     }
 
 }
-
-
-
-
 

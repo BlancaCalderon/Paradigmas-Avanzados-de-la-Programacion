@@ -36,9 +36,9 @@ void mostrarTablero(int* tablero, int numFilas, int numColumnas, int dificultad)
         M = numFilas;
     }
 
+    printf("Mostrar tablero - Valor de N = %d \n ", N);
     for (int i = 0; i < numFilas; i++)
     {
-	printf("__________________________________________________________ \n");
         for (int j = 0; j < numColumnas; j++)
         {
             int num = tablero[i * N + j];
@@ -46,21 +46,20 @@ void mostrarTablero(int* tablero, int numFilas, int numColumnas, int dificultad)
             {
                 if (7 <= num && num <= 13)
                 {
-                    printf("    RC%d   ||", num % 7);
+                    printf("RC%d  ", num % 7);
                 }
                 else
                 {
-                    printf("  %c   ||", (char)num);
+                    printf("%c  ", (char)num);
                 }
             }
             else
             {
-                printf("  %d   ||", num);
+                printf("%d  ", num);
             }
 
         }
         printf("\n");
-	printf("__________________________________________________________ \n");
     }
     printf("\n");
 }
@@ -668,12 +667,12 @@ __global__ void kernelEncontrarBomba(int* dev_tablero, int numFila, int numCol, 
         t_compartido[id] = dev_tablero[pos];
         __syncthreads();                        //Esperamos a que todos los hilos de cada bloque hayan cargado sus datos en el tablero
 
-        if (filaActual == filaEncontrar && (int)dev_index_fila > 5 && t_compartido[id] == -1 && numFila > fila && numCol > col)
+        if (filaActual == filaEncontrar && (int)dev_index_fila < 5 && t_compartido[id] == -1 && numFila > fila && numCol > col)
         {
             atomicAdd(&dev_index_fila[0], 1);
         }
 
-        if (colActual == colEncontrar && (int)dev_index_col > 5 && t_compartido[id] == -1 && numFila > fila && numCol > col)
+        if (colActual == colEncontrar && (int)dev_index_col < 5 && t_compartido[id] == -1 && numFila > fila && numCol > col)
         {
             atomicAdd(&dev_index_col[0], 1);
         }
@@ -868,8 +867,11 @@ int encontrarCamino(int* h_tablero_original, int numFilas, int numColumnas, int 
 
             if (h_tablero[cont] == -1)
             {
-                pos_encontrar = cont;
-                h_encontrado = 1;
+                kernelEncontrarCaminos << <dimGrid, dimBlock >> > (dev_Tablero, numFilas, numColumnas, dev_index, cont, dev_encontrado, color);
+                cudaMemcpy(&h_encontrado, dev_encontrado, sizeof(bool), cudaMemcpyDeviceToHost);
+                cudaMemcpy(h_tablero, dev_Tablero, size * sizeof(int), cudaMemcpyDeviceToHost);
+                cudaMemcpy(&h_index, dev_index, sizeof(int), cudaMemcpyDeviceToHost);
+                mostrarTablero(h_tablero, numFilas, numColumnas, dificultad);
             }
             cont += 1;
         }

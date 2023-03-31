@@ -927,7 +927,7 @@ void main(int argc, char* argv[])
     else //Realiza llamada con los 4 argumemtos
     {
         //Guarda los argumentos pasadas en las respectivas variables
-        modoJuego = (char)argv[1];
+        modoJuego = argv[1][0];
         dificultad = std::stoi(argv[2]);    //Guarda valor argumentos usando funcion stoi para convertirlo a int
         numFilas = std::stoi(argv[3]);
         numColumnas = std::stoi(argv[4]);

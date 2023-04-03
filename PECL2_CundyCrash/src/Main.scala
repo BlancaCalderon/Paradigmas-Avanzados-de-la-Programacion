@@ -5,11 +5,11 @@ import scala.util.Random
 object Main {
   def main(args: Array[String]): Unit = {
     println("Hello world!")
-    val tablero:List[Int] = inicializarTablero(Nil, 4, 20)
-    mostrarTablero(tablero,0, 4,5)
-    val nuevo:List[Int] = encontrarCamino(tablero, 4, 0, 4, 5, 20, true, getElem(4, tablero))
+    val tablero:List[Int] = inicializarTablero(Nil, 4, 50)
+    mostrarTablero(tablero,0, 10,5)
+    val nuevo:List[Int] = encontrarCamino(tablero, 4, 0, 10, 5, 50, true, getElem(4, tablero))
 
-    mostrarTablero(nuevo,0, 4,5)
+    mostrarTablero(nuevo,0, 10,5)
   }
 
   def inicializarTablero(tablero:List[Int], dificultad:Int, size:Int): List[Int] = {
@@ -57,7 +57,13 @@ object Main {
   }
 
   def encontrarCamino(tablero: List[Int], pos_encontrar:Int, pos:Int, N:Int, M:Int, size:Int, encontrado:Boolean,color:Int): List[Int] = {
-    if (size < 0 || !encontrado) {
+    val cambiadoDer: Boolean = false
+    val cambiadoIzq: Boolean = false
+    val cambiadoAbajo: Boolean = false
+    val cambiadoArriba: Boolean = false
+
+    if (size < 0)
+    {
       tablero
 
     }
@@ -69,44 +75,68 @@ object Main {
         println("Entra", pos)
         val nuevo:List[Int]  = insertarElementoPosicion(-1, pos, tablero)
 
+        val derecha: List[Int] = nuevo
+        val izquierda: List[Int] = nuevo
+        val abajo:List[Int] = nuevo
+        val arriba:List[Int] = nuevo
+
         val fila_siguiente: Int = ((pos + M) / M)
         val fila_anterior: Int = ((pos - M) / M)
 
-        val col_siguiente: Int = ceil((pos + 1) / N)
-        val col_anterior: Int = (pos - 1)  / N
+        val col_siguiente: Int = (pos + 1) % M
+        val col_anterior: Int = (pos - 1)  % M
         println("Pos= ", pos, "Col sig= ", col_siguiente, " Col anterior= ", col_anterior)
         if (pos + 1 < size && col_siguiente < M && col_siguiente > 0)
         {
+          val cambiadoDer: Boolean = true
           println("Derecha ", pos)
-          encontrarCamino(nuevo, pos_encontrar, pos + 1, N, M, size - 1, true, color) //Derecha
+          val derecha:List[Int] = encontrarCamino(nuevo, pos_encontrar, pos + 1, N, M, size - 1, true, color) //Derecha
+          return derecha
         }
 
         if (pos - 1 > 0 && col_anterior >= 0 && col_anterior < M - 1)
         {
           println("Izquierda")
-          encontrarCamino(nuevo, pos_encontrar, pos - 1, N, M, size - 1, true, color) //Izquierda
+          val cambiadoIzq: Boolean = true
+          val izquierda:List[Int] = encontrarCamino(nuevo, pos_encontrar, pos - 1, N, M, size - 1, true, color) //Izquierda
+          return izquierda
         }
 
         if (pos + M < size && fila_siguiente < N)
         {
           println("Abajo")
-          encontrarCamino(nuevo, pos_encontrar, pos + M, N, M, size - 1, true, color) //Abajo
+          val cambiadoAbajo: Boolean = true
+          val abajo:List[Int] = encontrarCamino(nuevo, pos_encontrar, pos + M, N, M, size - 1, true, color) //Abajo
+          return abajo
         }
 
         if (pos - M > 0 && fila_anterior > 0)
         {
           println("Arriba")
-          encontrarCamino(nuevo, pos_encontrar, pos - M, N, M, size - 1, true, color) //Arriba
-        }
-        else
-        {
-          encontrarCamino(tablero, pos_encontrar, pos + 1, N, M, size - 1, true, color)
+          val cambiadoArriba: Boolean = true
+          val arriba:List[Int] = encontrarCamino(nuevo, pos_encontrar, pos - M, N, M, size - 1, true, color) //Arriba
+          return arriba
         }
 
-      } else {
+        if(cambiadoDer) derecha
+        else if(cambiadoIzq) izquierda
+        else if(cambiadoAbajo) abajo
+        else if(cambiadoArriba) arriba
+        else nuevo
+
+        /*else
+        {
+          //nuevo = encontrarCamino(tablero, pos_encontrar, pos + 1, N, M, size - 1, true, color)
+          nuevo
+        }*/
+
+      }
+      else
+      {
         if (pos == pos_encontrar)
         {
-          encontrarCamino(tablero, pos_encontrar, pos, N, M, size - 1, true, color)
+          val nuevo:List[Int]  = insertarElementoPosicion(-1, pos, tablero)
+          encontrarCamino(nuevo, pos_encontrar, pos, N, M, size - 1, true, color)
         }
         else
         {

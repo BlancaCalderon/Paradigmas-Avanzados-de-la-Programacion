@@ -1,4 +1,3 @@
-import Main.{encontrarCamino, getElem}
 
 import java.security.SecureRandom
 import scala.math.ceil
@@ -6,16 +5,12 @@ import scala.util.Random
 
 object Main {
   def main(args: Array[String]): Unit = {
-    println("Hello world!")
-    val tablero:List[Int] = inicializarTablero(Nil, 4, 50)
-    mostrarTablero(tablero,0, 10,5)
-    val nuevo:List[Int] = encontrarCaminoAux(tablero, 4, 4, 10, 5, 50, true, getElem(4, tablero))
-    val arriba = List(1,2,-1,-1,5,6,7,8)
-    val tablero1 = List(1,2,3,4,5,6,7,8)
-    val abajo = List(-1,2,-1,-1,5,6,-1,-1)
-    //println(unirTableros(0,tablero1, arriba))
-    mostrarTablero(nuevo,0, 10,5)
-    println(encontrarBomba(nuevo, 4, 10, 5))
+    val tablero: List[Int] = List(1, 2, 3, 4, 1, 1, 1, 1, 2, 3, 2, 1, 1, 1, 2, 2)
+    mostrarTablero(tablero, 0, 4, 4)
+    val color: Int = getElem(4, tablero)
+    val tablero2: List[Int] = encontrarCaminos(tablero, 4, 0, 4, 4, 16, color, 4)
+    mostrarTablero(tablero2, 0, 4, 4)
+
   }
 
   def inicializarTablero(tablero:List[Int], dificultad:Int, size:Int): List[Int] = {
@@ -63,97 +58,54 @@ object Main {
   }
 
 
-  def encontrarCaminoAux(tablero: List[Int], pos_encontrar:Int, pos:Int, N:Int, M:Int, size:Int, encontrado:Boolean,color:Int): List[Int] = {
+  def encontrarCaminos(tablero: List[Int], pos_encontrar: Int, pos: Int, N: Int, M: Int, size: Int, color: Int, pos_original: Int): List[Int] = {
     size match {
       case 0 => tablero
       case _ =>
-      {
-        val nuevo: List[Int] = encontrarCamino(tablero, 4, 4, 10, 5, size, true, getElem(4, tablero))
-        println(nuevo)
-        encontrarCaminoAux(nuevo, 4, 4, 10, 5, size - 1, true, getElem(4, tablero))
-      }
-    }
-
-  }
-
-  def encontrarCamino(tablero: List[Int], pos_encontrar: Int, pos: Int, N: Int, M: Int, size: Int, encontrado: Boolean, color: Int): List[Int] = {
-    val cambiadoDer: Boolean = false
-    val cambiadoIzq: Boolean = false
-    val cambiadoAbajo: Boolean = false
-    val cambiadoArriba: Boolean = false
-
-    if (size < 0) {
-      tablero
-
-    }
-    else {
-      println(getElem(pos, tablero), " == ", color)
-      if (getElem(pos, tablero) == color) //&& pos != pos_encontrar)
-      {
-        println("Entra", pos)
-        val nuevo: List[Int] = insertarElementoPosicion(-1, pos, tablero)
-
-        val derecha: List[Int] = nuevo
-        val izquierda: List[Int] = nuevo
-        val abajo: List[Int] = nuevo
-        val arriba: List[Int] = nuevo
-
-        val fila_siguiente: Int = ((pos + M) / M)
-        val fila_anterior: Int = ((pos - M) / M)
-
-        val col_siguiente: Int = (pos + 1) % M
-        val col_anterior: Int = (pos - 1) % M
-        println("Pos= ", pos, "Col sig= ", col_siguiente, " Col anterior= ", col_anterior)
-        if (pos + 1 < size && col_siguiente < M && col_siguiente > 0) {
-          val cambiadoDer: Boolean = true
-          println("Derecha ", pos)
-          val derecha: List[Int] = encontrarCamino(nuevo, pos_encontrar, pos + 1, N, M, size - 1, true, color) //Derecha
-          return derecha
-        }
-
-        if (pos - 1 > 0 && col_anterior >= 0 && col_anterior < M - 1) {
-          println("Izquierda")
-          val cambiadoIzq: Boolean = true
-          val izquierda: List[Int] = encontrarCamino(nuevo, pos_encontrar, pos - 1, N, M, size - 1, true, color) //Izquierda
-          return izquierda
-        }
-
-        if (pos + M < size && fila_siguiente < N) {
-          println("Abajo")
-          val cambiadoAbajo: Boolean = true
-          val abajo: List[Int] = encontrarCamino(nuevo, pos_encontrar, pos + M, N, M, size - 1, true, color) //Abajo
-          return abajo
-        }
-
-        if (pos - M > 0 && fila_anterior > 0) {
-          println("Arriba")
-          val cambiadoArriba: Boolean = true
-          val arriba: List[Int] = encontrarCamino(nuevo, pos_encontrar, pos - M, N, M, size - 1, true, color) //Arriba
-          return arriba
-        }
-
-        if (cambiadoDer) derecha
-        else if (cambiadoIzq) izquierda
-        else if (cambiadoAbajo) abajo
-        else if (cambiadoArriba) arriba
-        else nuevo
-
-        /*else
-        {
-          //nuevo = encontrarCamino(tablero, pos_encontrar, pos + 1, N, M, size - 1, true, color)
-          nuevo
-        }*/
-
-      }
-      else {
-        if (pos == pos_encontrar) {
-          val nuevo: List[Int] = insertarElementoPosicion(-1, pos, tablero)
-          encontrarCamino(nuevo, pos_encontrar, pos, N, M, size - 1, true, color)
+        if (pos < 0 || pos >= size || !tablero.isDefinedAt(pos)) {
+          tablero
         }
         else {
-          encontrarCamino(tablero, pos_encontrar, pos + 1, N, M, size - 1, true, color)
+          val fila_siguiente: Int = ((pos + M) / M)
+          val fila_anterior: Int = ((pos - M) / M)
+
+          val col_siguiente: Int = (pos + 1) % M
+          val col_anterior: Int = if (pos % M == 0) M - 1 else (pos - 1) % M
+
+
+          //println("COLOR ACTUAL de pos ",pos," -> ", color)
+          if (contiene(tablero, pos, size) && pos == pos_encontrar && (tablero(pos) == color || tablero(pos) == -1)) //tablero.isDefinedAt(pos)
+          {
+            println("Entraaaa ", pos)
+            val nuevo_tablero: List[Int] = insertarElementoPosicion(-1, pos, tablero)
+            if (col_siguiente < M && contiene(tablero, pos + 1, size) && col_siguiente != 0 && tablero(pos + 1) == color) // Derecha
+            {
+              println("DERERCHAAA desde ", pos, "a", pos + 1)
+              insertarElementoPosicion(-1, pos + 1, encontrarCaminos(nuevo_tablero, pos + 1, pos + 1, N, M, size, color, pos_original))
+            }
+            else if (col_anterior >= 0 && contiene(tablero, pos - 1, size) && col_anterior != M - 1 && tablero(pos - 1) == color) // Izquierda
+            {
+              println("IZQUIERDAAA desde ", pos, "a", pos - 1)
+              insertarElementoPosicion(-1, pos - 1, encontrarCaminos(nuevo_tablero, pos - 1, pos - 1, N, M, size, color, pos_original))
+            }
+            else if (fila_siguiente < N && contiene(tablero, pos + M, size) && fila_siguiente != 0 && tablero(pos + M) == color) // Abajo
+            {
+              println("ABAJOOO desde ", pos, "a", pos + M)
+              insertarElementoPosicion(-1, pos + M, encontrarCaminos(nuevo_tablero, pos + M, pos + M, N, M, size, color, pos_original))
+            }
+            else if (fila_anterior >= 0 && contiene(tablero, pos - M, size) && fila_anterior != N - 1 && tablero(pos - M) == color) // Arriba
+            {
+              println("ARRIBAAA desde ", pos, "a", pos - M)
+              insertarElementoPosicion(-1, pos - M, encontrarCaminos(nuevo_tablero, pos - M, pos - M, N, M, size, color, pos_original))
+            }
+            else {
+              insertarElementoPosicion(tablero(pos), pos, encontrarCaminos(nuevo_tablero, pos_original, pos_original, N, M, size - 1, color, pos_original))
+            }
+          }
+          else {
+            insertarElementoPosicion(tablero(pos), pos, encontrarCaminos(tablero, pos_original, pos_original, N, M, size - 1, color, pos_original))
+          }
         }
-      }
     }
   }
 
@@ -195,6 +147,14 @@ object Main {
       }
 
     }
+  }
+
+  //Comprueba si cierta posicion esta dentro del rango del tablero
+  def contiene(tablero: List[Int], pos: Int, size: Int): Boolean =
+  {
+    if (pos < 0) false
+    else if (pos >= size) false
+    else true
   }
 
   //Obtiene elemento que se encuentra en la posicion index de la matriz

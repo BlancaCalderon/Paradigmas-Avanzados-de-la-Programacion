@@ -1,4 +1,6 @@
 
+import Main.contadorBorrar
+
 import java.security.SecureRandom
 import scala.math.ceil
 import scala.util.Random
@@ -10,7 +12,8 @@ object Main {
     val color: Int = getElem(4, tablero)
     val tablero2: List[Int] = encontrarCaminos(tablero, 4, 0, 4, 4, 16, color, 4)
     mostrarTablero(tablero2, 0, 4, 4)
-
+    val reemplazado:List[Int] = reemplazarPosiciones(0, tablero2, 4, 4, 4)
+    mostrarTablero(reemplazado, 0, 4, 4)
   }
 
   def inicializarTablero(tablero:List[Int], dificultad:Int, size:Int): List[Int] = {
@@ -87,6 +90,7 @@ object Main {
             {
               println("IZQUIERDAAA desde ", pos, "a", pos - 1)
               insertarElementoPosicion(-1, pos - 1, encontrarCaminos(nuevo_tablero, pos - 1, pos - 1, N, M, size, color, pos_original))
+
             }
             else if (fila_siguiente < N && contiene(tablero, pos + M, size) && fila_siguiente != 0 && tablero(pos + M) == color) // Abajo
             {
@@ -99,7 +103,7 @@ object Main {
               insertarElementoPosicion(-1, pos - M, encontrarCaminos(nuevo_tablero, pos - M, pos - M, N, M, size, color, pos_original))
             }
             else {
-              insertarElementoPosicion(tablero(pos), pos, encontrarCaminos(nuevo_tablero, pos_original, pos_original, N, M, size - 1, color, pos_original))
+              insertarElementoPosicion(nuevo_tablero(pos), pos, encontrarCaminos(nuevo_tablero, pos_original, pos_original, N, M, size - 1, color, pos_original))
             }
           }
           else {
@@ -109,18 +113,95 @@ object Main {
     }
   }
 
+  /**
+   * Reemplaza las posiciones del tablero que han sido eliminadas
+   * @param pos
+   * @param tablero
+   * @param N
+   * @param M
+   * @param dificultad
+   * @return tablero con nuevos colores
+   */
+
+  def reemplazarPosiciones(pos:Int, tablero:List[Int], N:Int, M:Int, dificultad:Int): List[Int] = {
+    val contador:Int = contadorBorrar(tablero)
+    println(contadorBorrar(tablero))
+    contador match {
+      case 0 => {
+        println(contadorBorrar(tablero))
+        if (contadorBorrar(tablero) == 0) {
+          tablero
+        }
+        else
+        {
+          reemplazarPosiciones(0, tablero, N, M, dificultad)
+          //  reemplanzarAux(0, tablero, N, M, dificultad, contadorBorrar(tablero))
+        }
+      }
+      case _ => {
+        val nuevo:List[Int] = reemplazarAux(0, tablero, N, M, dificultad, contador, N*M)
+        println("CONTADOR NUEVO " + contadorBorrar(nuevo))
+        mostrarTablero(nuevo,0, 4, 4)
+        if (contadorBorrar(nuevo) > 0)
+        {
+          reemplazarPosiciones(0, nuevo, N, M, dificultad)
+        }
+        else
+        {
+            nuevo
+        }
+      }
+    }
+  }
+
+  def reemplazarAux(pos: Int, tablero: List[Int], N: Int, M: Int, dificultad: Int, contador: Int, size:Int): List[Int] = {
+    size match {
+      case 0 => tablero
+      case _ =>  {
+        println(pos)
+        if (tablero(pos) == -1) {
+          println("Pos "+ pos+" = -1")
+          val filaActual: Int = pos / M;
+          val colActual: Int = pos - filaActual * M;
+          if (contiene(tablero, pos - M, N * M) && pos - M >= 0 && filaActual > 0 && filaActual <= N && tablero(pos - M) != -1) //Si la posicion de arriba es distinta de -1 se la asignamos a la posicion que nos llega y se la quitamos a la de arriba
+          {
+            println("Entro a insertar posicion en " +  pos)
+            val elem: Int = tablero(pos - M)
+            val nuevo: List[Int] = insertarElementoPosicion(-1, pos-M, tablero)
+            println("Elemento pos - M = ", pos - M, nuevo(pos - M))
+            insertarElementoPosicion(elem, pos, reemplazarAux(pos + 1, nuevo, N, M, dificultad, contador, size - 1))
+          }
+          else if (filaActual == 0) //Si estas en la fila 0
+          {
+            val secureRandom = new Random(System.nanoTime())
+            val color: Int = Random.nextInt(dificultad) + 1
+            insertarElementoPosicion(color, pos, reemplazarAux(pos + 1, tablero, N, M, dificultad, contador, size - 1))
+          }
+          else
+          {
+
+            reemplazarAux(pos + 1, tablero, N, M, dificultad, contador, size - 1)
+          }
+        } else
+        {
+          println("Pos "+ pos+" = color")
+          reemplazarAux(pos + 1, tablero, N, M, dificultad, contador, size - 1)
+        }
+      }
+    }
+  }
   def encontrarBomba(tablero: List[Int], pos_encontrar: Int, N: Int, M:Int): List[Int] = {
     //Contador de columna
     val numCol: Int = pos_encontrar % M;
     val listaCol: List[Int] = getColumna(0, tablero, numCol, M)
     println("Lista columnas", listaCol, "Num col", numCol)
-    val contCol:Int = contadorBomba(listaCol)
+    val contCol:Int = contadorBorrar(listaCol)
 
     //Contador de fila
     val numFila: Int = pos_encontrar / M;
     val listaFila: List[Int] = getFila(numFila, tablero, M)
     println("Lista Fila", listaFila)
-    val contFila:Int = contadorBomba(listaFila)
+    val contFila:Int = contadorBorrar(listaFila)
 
     //Comparamos los valores de los contadores
     if (contCol != contFila)
@@ -132,9 +213,38 @@ object Main {
     {
         tablero
     }
-
   }
-  def contadorBomba(listaFila:List[Int]): Int = {
+
+  /**
+   * Determina si se crea un bloque especial de Rompecabezas o TNT, devolviendo el tablero con el bloque especial asignado
+   * @param tablero
+   * @param pos_encontrar
+   * @param N
+   * @param M
+   * @param dificultad
+   * @return tablero
+   */
+  def encontrarRompecabezasTNT(tablero:List[Int], pos_encontrar:Int, N:Int, M:Int, dificultad:Int):List[Int] = {
+
+    val cont:Int = contadorBorrar(tablero)
+
+    if (cont == 6) //Si el indice vale 6 es el TNT
+    {
+      insertarElementoPosicion(84, pos_encontrar, tablero)
+    }
+    else if (cont >= 7) //Si el indice es mayor de o igual de 7 introducimos un RC
+    {
+      val secureRandom = new Random(System.nanoTime())
+      val color: Int = Random.nextInt(dificultad) + 1
+      insertarElementoPosicion(color, pos_encontrar, tablero)
+    }
+    else
+    {
+      tablero
+    }
+  }
+
+  def contadorBorrar(listaFila:List[Int]): Int = {
     listaFila match {
       case Nil => 0
       case head::Nil => {
@@ -142,10 +252,9 @@ object Main {
         else 0
       }
       case head::tail => {
-        if (head == -1) 1 + contadorBomba(tail)
-        else  0 + contadorBomba(tail)
+        if (head == -1) 1 + contadorBorrar(tail)
+        else  0 + contadorBorrar(tail)
       }
-
     }
   }
 

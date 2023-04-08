@@ -6,10 +6,10 @@ import scala.math.ceil
 import scala.util.Random
 
 object Main {
-  //private val random = new Random(System.nanoTime())
-  private val vidas = 5
 
-  def main(args: Array[String]): Unit = {
+  def main(args: Array[String]): Unit =
+  {
+    val vidas : Int = 5
     //Si se ha llamado al programa por comandos
     if (obtenerLongitud(args) > 0) {
       if (obtenerLongitud(args) == 5) {
@@ -23,7 +23,8 @@ object Main {
       else if (obtenerLongitud(args) < 5) throw new Error("Faltan argumentos en la llamada ")
       else if (obtenerLongitud(args) > 5) throw new Error("Sobran argumentos en la llamdad")
     }
-    else {
+    else
+    {
       println("Introduce el numero de Filas del tablero: ")
       val numFilas: Int = scala.io.StdIn.readInt()
 
@@ -41,40 +42,43 @@ object Main {
 
       val tablero: List[Int] = inicializarTablero(Nil, limiteNum, numFilas * numCol)
       mostrarTablero(tablero, 0, numFilas, numCol)
-      seleccionModoJuego(modoJuego, numFilas, numCol, dificultad, tablero)
+      seleccionModoJuego(modoJuego, numFilas, numCol, dificultad, tablero, vidas)
       //val tablero: List[Int] = List(1,1,3,4,1,1,1,1,2,3,2,1,1,1,2,2)
     }
   }
 
-  def seleccionModoJuego(modoJuego: Char, numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int]): Unit = {
-    if (modoJuego == 'a' || modoJuego == 'A') jugarAutomatico(numFilas, numCol, dificultad, modoJuego, tablero)
-    else if (modoJuego == 'm' || modoJuego == 'M') jugarManual(numFilas, numCol, dificultad, modoJuego, tablero)
+  def seleccionModoJuego(modoJuego: Char, numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int], vidas: Int): Unit = {
+    if (modoJuego == 'a' || modoJuego == 'A') jugarAutomatico(numFilas, numCol, dificultad, modoJuego, tablero, vidas)
+    else if (modoJuego == 'm' || modoJuego == 'M') jugarManual(numFilas, numCol, dificultad, modoJuego, tablero, vidas)
     else throw new Error("Modo de juego incorrecto")
   }
 
-  def jugarAutomatico(numFilas: Int, numCol: Int, dificultad: Int, modoJuego: Char, tablero: List[Int]): Unit = {
+  def jugarAutomatico(numFilas: Int, numCol: Int, dificultad: Int, modoJuego: Char, tablero: List[Int], vidas : Int): Unit = {
     val random = new Random(System.nanoTime())
     val coordX: Int = random.nextInt(numFilas)
     val coordY: Int = random.nextInt(numCol)
     println("Coordenada x = " + coordX + " Coordenada Y = " + coordY)
 
-    jugar(numFilas, numCol, dificultad, tablero, modoJuego, coordX, coordY)
+    jugar(numFilas, numCol, dificultad, tablero, modoJuego, coordX, coordY, vidas)
   }
 
-  def jugarManual(numFilas: Int, numCol: Int, dificultad: Int, modoJuego: Char, tablero: List[Int]): Unit = {
+  def jugarManual(numFilas: Int, numCol: Int, dificultad: Int, modoJuego: Char, tablero: List[Int], vidas: Int): Unit = {
     println("Introduce la coordenada X de la posicion a borrar : ")
     val coordX: Int = scala.io.StdIn.readInt()
 
     println("Introduce la coordenada Y de la posicion a borrar : ")
     val coordY: Int = scala.io.StdIn.readInt()
 
-    jugar(numFilas, numCol, dificultad, tablero, modoJuego, coordX, coordY)
+    jugar(numFilas, numCol, dificultad, tablero, modoJuego, coordX, coordY, vidas)
   }
 
   //Bucle del juego que se lleva a cabo hasta que se acaban las vidas del jugador
-  def jugar(numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int], modoJuego: Char, coordX: Int, coordY: Int): Unit = {
+  def jugar(numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int], modoJuego: Char, coordX: Int, coordY: Int, vidas: Int): Unit = {
     val size: Int = numCol * numFilas
-    vidas match {
+    println("VIDAS " + vidas)
+
+    vidas match
+    {
       case 0 => println("Has perdido")
       case _ => {
         val pos_encontrar: Int = coordX * numCol + coordY
@@ -83,13 +87,10 @@ object Main {
         val tablero2: List[Int] = borrarSeleccion (tablero, pos_encontrar, size , numFilas, numCol, color, dificultad)
         mostrarTablero(tablero2, 0, numFilas, numCol)
 
-        //Si solo borrar una casilla (no tiene adyacentes)
-        if(contadorBorrar(tablero2) == 1) vidas - 1
-
         val tablero3: List[Int] = reemplazarPosiciones(0,tablero2, numFilas, numCol, dificultad)
         mostrarTablero(tablero3,0,numFilas, numCol)
 
-        seleccionModoJuego(modoJuego, numFilas, numCol, dificultad, tablero3)
+        seleccionModoJuego(modoJuego, numFilas, numCol, dificultad, tablero3, restarVidas(tablero2, vidas))
 
       }
     }
@@ -108,6 +109,16 @@ object Main {
       val tablero4: List[Int] = encontrarRompecabezasTNT(tablero3, pos_encontrar, numFilas, numCol, dificultad)
       tablero4
     }
+  }
+
+  //Funcion que determina si se le tiene que borrar una vida al jugador
+  def restarVidas(tablero: List[Int], vidas: Int): Int =
+  {
+    if (contadorBorrar(tablero) == 1)
+    {
+      vidas - 1
+    }
+    else vidas
   }
 
   def definirDificultad(dificultad: Int): Int = {

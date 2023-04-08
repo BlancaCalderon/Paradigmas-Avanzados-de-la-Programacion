@@ -42,7 +42,7 @@ object Main {
 
       val tablero: List[Int] = inicializarTablero(Nil, limiteNum, numFilas * numCol)
       mostrarTablero(tablero, 0, numFilas, numCol)
-      seleccionModoJuego(modoJuego, numFilas, numCol, dificultad, tablero, vidas)
+      seleccionModoJuego(modoJuego, numFilas, numCol, limiteNum, tablero, vidas)
       //val tablero: List[Int] = List(1,1,3,4,1,1,1,1,2,3,2,1,1,1,2,2)
     }
   }
@@ -101,7 +101,7 @@ object Main {
   def borrarSeleccion(tablero : List[Int], pos_encontrar: Int, size : Int, numFilas: Int, numCol: Int, color: Int, dificultad: Int): List[Int] =
   {
     if(tablero(pos_encontrar) == 66)  insertarElementoPosicion(-1, pos_encontrar, realizarAccionBomba(tablero, 0, pos_encontrar, size, numCol))
-    else if(tablero(pos_encontrar) == 84) insertarElementoPosicion(-1, pos_encontrar, realizarAccionTNT(tablero, 0, pos_encontrar, size, numCol))
+    else if(tablero(pos_encontrar) == 84) insertarElementoPosicion(-1, pos_encontrar, realizarAccionTNT(tablero, 0, pos_encontrar, size, numCol, numFilas))
     else if(tablero(pos_encontrar) > 7 && tablero(pos_encontrar) < 14)  insertarElementoPosicion(-1, pos_encontrar, realizarAccionRompecabezas(tablero, 0, pos_encontrar, size))
     else
     {
@@ -139,20 +139,6 @@ object Main {
       }
     }
   }
-
-  def concatenar(tablero:List[Int], e:Int): List[Int] = {
-    tablero match
-    {
-      case Nil => e :: Nil
-      case head :: tail =>
-        head match
-        {
-          case _ if (e <= head) => e :: tablero //If else con granularidad especifica
-          case _ => head :: concatenar(tail, e)
-        }
-    }
-  }
-
 
   def mostrarTablero(l: List[Int], fila: Int, N:Int, M:Int): Unit = {
       if (l == Nil)
@@ -291,18 +277,9 @@ object Main {
   def reemplazarPosiciones(pos:Int, tablero:List[Int], N:Int, M:Int, dificultad:Int): List[Int] = {
     val contador:Int = contadorBorrar(tablero)
     //println(contadorBorrar(tablero))
-    contador match {
-      case 0 => {
-        //println(contadorBorrar(tablero))
-        if (contadorBorrar(tablero) == 0) {
-          tablero
-        }
-        else
-        {
-          reemplazarPosiciones(0, tablero, N, M, dificultad)
-          //  reemplanzarAux(0, tablero, N, M, dificultad, contadorBorrar(tablero))
-        }
-      }
+    contador match
+    {
+      case 0 => tablero
       case _ => {
         val nuevo:List[Int] = reemplazarAux(0, tablero, N, M, dificultad, contador, N*M)
         //println("CONTADOR NUEVO " + contadorBorrar(nuevo))
@@ -320,14 +297,18 @@ object Main {
   }
 
   def reemplazarAux(pos: Int, tablero: List[Int], N: Int, M: Int, dificultad: Int, contador: Int, size:Int): List[Int] = {
-    size match {
+    size match
+    {
       case 0 => tablero
-      case _ =>  {
+      case _ =>
+      {
        // println(pos)
-        if (tablero(pos) == -1) {
+        if (tablero(pos) == -1)
+        {
           //println("Pos "+ pos+" = -1")
           val filaActual: Int = pos / M;
           val colActual: Int = pos % M;
+
           if (contiene(tablero, pos - M, N * M) && pos - M >= 0 && filaActual > 0 && filaActual <= N && tablero(pos - M) != -1) //Si la posicion de arriba es distinta de -1 se la asignamos a la posicion que nos llega y se la quitamos a la de arriba
           {
             //println("Entro a insertar posicion en " +  pos)
@@ -346,7 +327,8 @@ object Main {
           {
             reemplazarAux(pos + 1, tablero, N, M, dificultad, contador, size - 1)
           }
-        } else
+        }
+        else
         {
           //println("Pos "+ pos+" = color")
           reemplazarAux(pos + 1, tablero, N, M, dificultad, contador, size - 1)
@@ -448,34 +430,26 @@ object Main {
   }
 
   //Funcion que lleva a cabo la accion del TNT de eliminar todas las casillas en un radio de 4 casillas
-  def realizarAccionTNT(tablero: List[Int], pos: Int, pos_encontrar: Int, size: Int, numCol: Int): List[Int] =
+  def realizarAccionTNT(tablero: List[Int], pos: Int, pos_encontrar: Int, size: Int, numCol: Int, numFilas : Int): List[Int] =
   {
     size match
     {
       case 0  => insertarElementoPosicion(-1, pos_encontrar, tablero)
       case _ =>
       {
-        val limiteDerecho: Int = (pos_encontrar + 4) % numCol
-        val limiteIzquierdo: Int = (pos_encontrar - 4) % numCol
-        val limiteArriba: Int = (pos_encontrar - 4) / numCol
-        val limiteAbajo: Int = (pos_encontrar + 4) / numCol
-
         val filaActual: Int = pos / numCol
         val colActual: Int = pos % numCol
-        println("LIMITE DERECHO " + limiteDerecho)
-        println("LIMITE IZQUIERDO " + limiteIzquierdo)
-        println("LIMITE ARRIBA " + limiteArriba)
-        println("LIMITE ABAJO "+ limiteAbajo)
 
-        println("ACTUALLL " + filaActual)
+        val limiteDerecho: Int = if((colActual + 4) < numCol) colActual + 4 else numCol - 1
+        val limiteIzquierdo: Int = if((colActual - 4) < 0) 0 else filaActual - 4
+        val limiteArriba: Int = if((filaActual - 4) < 0) 0 else colActual - 4
+        val limiteAbajo: Int = if((filaActual + 4) < numFilas) filaActual + 4 else numFilas - 1
 
         if (colActual < limiteDerecho && colActual > limiteIzquierdo && filaActual < limiteAbajo && filaActual > limiteArriba)
-        {
-          println("EXPLOTA " + pos)
-          insertarElementoPosicion(-1, pos, realizarAccionTNT(tablero, pos + 1, pos_encontrar, size - 1, numCol))
-        }
+          insertarElementoPosicion(-1, pos, realizarAccionTNT(tablero, pos + 1, pos_encontrar, size - 1, numCol, numFilas))
+
         else
-          insertarElementoPosicion(tablero(pos), pos, realizarAccionTNT(tablero, pos + 1, pos_encontrar, size - 1, numCol))
+          insertarElementoPosicion(tablero(pos), pos, realizarAccionTNT(tablero, pos + 1, pos_encontrar, size - 1, numCol, numFilas))
       }
     }
   }
@@ -525,7 +499,6 @@ object Main {
       }
     }
   }
-
 
   //Obtiene los valores de la columna index
   def getColumna(index: Int, matriz: List[Int], col:Int, numCol:Int): List[Int] = {
@@ -579,6 +552,18 @@ object Main {
       else dejar(n, tail)
   }
   //Une los tableros
+
+  def concatenar(tablero: List[Int], e: Int): List[Int] = {
+    tablero match {
+      case Nil => e :: Nil
+      case head :: tail =>
+        head match {
+          case _ if (e <= head) => e :: tablero //If else con granularidad especifica
+          case _ => head :: concatenar(tail, e)
+        }
+    }
+  }
+
   def unirCaminos(pos: Int, tablero: List[Int], derecha: List[Int], izquierda: List[Int], arriba: List[Int], abajo: List[Int]): List[Int] = {
     tablero match
     {

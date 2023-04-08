@@ -389,14 +389,21 @@ object Main {
       case 0  => insertarElementoPosicion(-1, pos_encontrar, tablero)
       case _ =>
       {
-        val limiteDerecho: Int = (pos_encontrar + 4) / numCol
-        val limiteIzquierdo: Int = (pos_encontrar - 4) / numCol
-        val limiteArriba: Int = (pos_encontrar - 4) % numCol
-        val limiteAbajo: Int = (pos_encontrar + 4) % numCol
+        val limiteDerecho: Int = (pos_encontrar + 4) % numCol
+        val limiteIzquierdo: Int = (pos_encontrar - 4) % numCol
+        val limiteArriba: Int = (pos_encontrar - 4) / numCol
+        val limiteAbajo: Int = (pos_encontrar + 4) / numCol
 
         val filaActual: Int = pos / numCol
+        val colActual: Int = pos % numCol
+        println("LIMITE DERECHO " + limiteDerecho)
+        println("LIMITE IZQUIERDO " + limiteIzquierdo)
+        println("LIMITE ARRIBA " + limiteArriba)
+        println("LIMITE ABAJO "+ limiteAbajo)
 
-        if (filaActual < limiteDerecho && filaActual > limiteIzquierdo && filaActual < limiteAbajo && filaActual > limiteArriba)
+        println("ACTUALLL " + filaActual)
+
+        if (colActual < limiteDerecho && colActual > limiteIzquierdo && filaActual < limiteAbajo && filaActual > limiteArriba)
         {
           println("EXPLOTA " + pos)
           insertarElementoPosicion(-1, pos, realizarAccionTNT(tablero, pos + 1, pos_encontrar, size - 1, numCol))

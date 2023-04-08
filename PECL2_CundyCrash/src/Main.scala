@@ -84,13 +84,14 @@ object Main {
         val pos_encontrar: Int = coordX * numCol + coordY
         val color: Int = getElem(pos_encontrar, tablero)
 
+        println("Longitud del camino = " + contarLongitudCamino(tablero, pos_encontrar,0, numFilas, numCol, size, color, pos_encontrar))
         val tablero2: List[Int] = borrarSeleccion (tablero, pos_encontrar, size , numFilas, numCol, color, dificultad)
         mostrarTablero(tablero2, 0, numFilas, numCol)
 
         val tablero3: List[Int] = reemplazarPosiciones(0,tablero2, numFilas, numCol, dificultad)
         mostrarTablero(tablero3,0,numFilas, numCol)
 
-        seleccionModoJuego(modoJuego, numFilas, numCol, dificultad, tablero3, restarVidas(tablero2, vidas))
+        seleccionModoJuego(modoJuego, numFilas, numCol, dificultad, tablero3, restarVidas(tablero2, vidas, pos_encontrar))
 
       }
     }
@@ -112,9 +113,9 @@ object Main {
   }
 
   //Funcion que determina si se le tiene que borrar una vida al jugador
-  def restarVidas(tablero: List[Int], vidas: Int): Int =
+  def restarVidas(tablero: List[Int], vidas: Int, pos_encontrar:Int): Int =
   {
-    if (contadorBorrar(tablero) == 1)
+    if (contadorBorrar(tablero) == 1 && tablero(pos_encontrar) < 7 )
     {
       vidas - 1
     }
@@ -171,14 +172,17 @@ object Main {
   }
 
 
+  //Función que encuentra todos los caminos desde una posicion hasta todas las casillas adyacentes del mismo color
   def encontrarCaminos(tablero: List[Int], pos_encontrar: Int, pos: Int, N: Int, M: Int, size: Int, color: Int, pos_original: Int): List[Int] = {
-    size match {
+    size match
+    {
       case 0 => tablero
       case _ =>
         if (pos < 0 || pos >= size || !contiene(tablero, pos, size)) {
           tablero
         }
-        else {
+        else
+        {
           val fila_siguiente: Int = ((pos + M) / M)
           val fila_anterior: Int = ((pos - M) / M)
 
@@ -211,18 +215,68 @@ object Main {
               //println("ARRIBAAA desde ", pos, "a", pos - M)
               insertarElementoPosicion(-1, pos - M, encontrarCaminos(nuevo_tablero, pos - M, pos - M, N, M, size, color, pos_original))
             }
-            else {
-              insertarElementoPosicion(nuevo_tablero(pos), pos, encontrarCaminos(nuevo_tablero, pos_original, pos_original, N, M, size - 1, color, pos_original))
+            else
+            {
+              encontrarCaminos(nuevo_tablero, pos_original, pos_original, N, M, size - 1, color, pos_original)
             }
           }
-          else {
-            if (tablero(pos) == color) insertarElementoPosicion(-1, pos, encontrarCaminos(tablero, pos_original, pos_original, N, M, size - 1, color, pos_original))
-            else insertarElementoPosicion(tablero(pos), pos, encontrarCaminos(tablero, pos_original, pos_original, N, M, size - 1, color, pos_original))
+          else
+          {
+            encontrarCaminos(tablero, pos_original, pos_original, N, M, size - 1, color, pos_original)
           }
         }
     }
   }
 
+  //Funcion que cuenta el numero de casillas a borrar desde una posicion
+  def contarLongitudCamino(tablero: List[Int], pos_encontrar: Int, pos: Int, N: Int, M: Int, size: Int, color: Int, pos_original: Int): Int = {
+    size match {
+      case 0 => 1
+      case _ =>
+        if (pos < 0 || pos >= size || !contiene(tablero, pos, size)) {
+          1
+        }
+        else {
+          val fila_siguiente: Int = ((pos + M) / M)
+          val fila_anterior: Int = ((pos - M) / M)
+
+          val col_siguiente: Int = (pos + 1) % M
+          val col_anterior: Int = if (pos % M == 0) M - 1 else (pos - 1) % M
+
+
+          //println("COLOR ACTUAL de pos ",pos," -> ", color)
+          if (contiene(tablero, pos, size) && pos == pos_encontrar && (tablero(pos) == color || tablero(pos) == -1)) //tablero.isDefinedAt(pos)
+          {
+            //println("Entraaaa ", pos)
+            val nuevo_tablero: List[Int] = insertarElementoPosicion(-1, pos, tablero)
+            if (col_siguiente < M && contiene(tablero, pos + 1, size) && col_siguiente != 0 && tablero(pos + 1) == color) // Derecha
+            {
+              //println("DERERCHAAA desde ", pos, "a", pos + 1)
+              1 + contarLongitudCamino(nuevo_tablero, pos + 1, pos + 1, N, M, size, color, pos_original)
+            }
+            else if (col_anterior >= 0 && contiene(tablero, pos - 1, size) && col_anterior != M - 1 && tablero(pos - 1) == color) // Izquierda
+            {
+              //println("IZQUIERDAAA desde ", pos, "a", pos - 1)
+              1 + contarLongitudCamino(nuevo_tablero, pos - 1, pos - 1, N, M, size, color, pos_original)
+            }
+            else if (fila_siguiente < N && contiene(tablero, pos + M, size) && fila_siguiente != 0 && tablero(pos + M) == color) // Abajo
+            {
+              //println("ABAJOOO desde ", pos, "a", pos + M)
+              1 + contarLongitudCamino(nuevo_tablero, pos + M, pos + M, N, M, size, color, pos_original)
+            }
+            else if (fila_anterior >= 0 && contiene(tablero, pos - M, size) && fila_anterior != N - 1 && tablero(pos - M) == color) // Arriba
+            {
+              //println("ARRIBAAA desde ", pos, "a", pos - M)
+              1 + contarLongitudCamino(nuevo_tablero, pos - M, pos - M, N, M, size, color, pos_original)
+            }
+            else contarLongitudCamino(nuevo_tablero, pos_original, pos_original, N, M, size - 1, color, pos_original)
+          }
+          else {
+            contarLongitudCamino(tablero, pos_original, pos_original, N, M, size - 1, color, pos_original)
+          }
+        }
+    }
+  }
   /**
    * Reemplaza las posiciones del tablero que han sido eliminadas
    * @param pos
@@ -232,6 +286,7 @@ object Main {
    * @param dificultad
    * @return tablero con nuevos colores
    */
+
 
   def reemplazarPosiciones(pos:Int, tablero:List[Int], N:Int, M:Int, dificultad:Int): List[Int] = {
     val contador:Int = contadorBorrar(tablero)
@@ -472,7 +527,6 @@ object Main {
   }
 
 
-
   //Obtiene los valores de la columna index
   def getColumna(index: Int, matriz: List[Int], col:Int, numCol:Int): List[Int] = {
     matriz match {
@@ -574,5 +628,4 @@ object Main {
       }
     }
   }
-
 }

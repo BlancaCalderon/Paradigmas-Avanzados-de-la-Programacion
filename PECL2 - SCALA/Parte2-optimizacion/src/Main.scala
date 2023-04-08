@@ -1,8 +1,4 @@
 
-import Main.contadorBorrar
-
-import java.security.SecureRandom
-import scala.math.ceil
 import scala.util.Random
 
 object Main {
@@ -54,12 +50,56 @@ object Main {
   }
 
   def jugarAutomatico(numFilas: Int, numCol: Int, dificultad: Int, modoJuego: Char, tablero: List[Int], vidas : Int): Unit = {
-    val random = new Random(System.nanoTime())
+
+
+    /*val random = new Random(System.nanoTime())
     val coordX: Int = random.nextInt(numFilas)
     val coordY: Int = random.nextInt(numCol)
-    println("Coordenada x = " + coordX + " Coordenada Y = " + coordY)
+    println("Coordenada x = " + coordX + " Coordenada Y = " + coordY)*/
 
-    jugar(numFilas, numCol, dificultad, tablero, modoJuego, coordX, coordY, vidas)
+    val pos : Int = conseguirMejorJugada(tablero, 0, numFilas, numCol, numFilas * numCol, 0)
+    println("Posicion optima a borrar " + pos)
+    jugar(numFilas, numCol, dificultad, tablero, modoJuego, pos, vidas)
+  }
+
+  //Funcion que calcula cual seria la mejor posicion a borrar (mayor longitud de camino)
+  def conseguirMejorJugada(tablero: List[Int], pos: Int, numFilas: Int, numCol: Int, size : Int, mejorPos : Int): Int =
+  {
+    size match
+    {
+      case 0 => mejorPos
+      case _ =>
+      {
+        if(!contiene(tablero, pos, size)) mejorPos
+        else
+        {
+          if(tablero(pos) > 6)
+          {
+            println("BORRO BLOQUE ESPECIAL " + tablero(pos)+ " EN " + pos)
+            pos   //Si la posicion es un bloque especial se borra esa
+          }
+          else
+          {
+            val mejorLong: Int = contarLongitudCamino(tablero, mejorPos, 0, numFilas, numCol, size, tablero(mejorPos), mejorPos)
+            val longActual: Int = contarLongitudCamino(tablero, pos, 0, numFilas, numCol, size, tablero(pos), pos)
+
+            if (contiene(tablero, pos + 1, size))
+            {
+              if (longActual > mejorLong)
+                conseguirMejorJugada(tablero, pos + 1, numFilas, numCol, size - 1, pos)
+              else
+                conseguirMejorJugada(tablero, pos + 1, numFilas, numCol, size - 1, mejorPos)
+            }
+            else
+            {
+              if (longActual > mejorLong)
+                pos
+              else mejorPos
+            }
+          }
+        }
+      }
+    }
   }
 
   def jugarManual(numFilas: Int, numCol: Int, dificultad: Int, modoJuego: Char, tablero: List[Int], vidas: Int): Unit = {
@@ -69,19 +109,20 @@ object Main {
     println("Introduce la coordenada Y de la posicion a borrar : ")
     val coordY: Int = scala.io.StdIn.readInt()
 
-    jugar(numFilas, numCol, dificultad, tablero, modoJuego, coordX, coordY, vidas)
+    val pos_encontrar: Int = coordX * numCol + coordY
+    jugar(numFilas, numCol, dificultad, tablero, modoJuego, pos_encontrar, vidas)
   }
 
   //Bucle del juego que se lleva a cabo hasta que se acaban las vidas del jugador
-  def jugar(numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int], modoJuego: Char, coordX: Int, coordY: Int, vidas: Int): Unit = {
+  def jugar(numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int], modoJuego: Char, pos_encontrar: Int, vidas: Int): Unit = {
     val size: Int = numCol * numFilas
     println("VIDAS " + vidas)
 
     vidas match
     {
       case 0 => println("Has perdido")
-      case _ => {
-        val pos_encontrar: Int = coordX * numCol + coordY
+      case _ =>
+      {
         val color: Int = getElem(pos_encontrar, tablero)
 
         println("Longitud del camino = " + contarLongitudCamino(tablero, pos_encontrar,0, numFilas, numCol, size, color, pos_encontrar))
@@ -141,22 +182,21 @@ object Main {
   }
 
   def mostrarTablero(l: List[Int], fila: Int, N:Int, M:Int): Unit = {
-      if (l == Nil)
-      {
-         println("\n--------------")
+    if (l == Nil)
+    {
+      println("\n--------------")
 
-      }
-      else
-      {
-        if(fila == 0) println("\n--------------")
-        if (fila % M == 0) print("\n|")
-        if(l.head < 14 && l.head > 7 )  print("RC" + l.head % 7 + "|")    //Imprime bloque especial RC
-        else if (l.head > 14) print(l.head.toChar + "|")
-        else if(l.head < 7) print(l.head + "|")
-        mostrarTablero(l.tail, fila + 1, N, M)
-      }
+    }
+    else
+    {
+      if(fila == 0) println("\n--------------")
+      if (fila % M == 0) print("\n|")
+      if(l.head < 14 && l.head > 7 )  print("RC" + l.head % 7 + "|")    //Imprime bloque especial RC
+      else if (l.head > 14) print(l.head.toChar + "|")
+      else if(l.head < 7) print(l.head + "|")
+      mostrarTablero(l.tail, fila + 1, N, M)
+    }
   }
-
 
   //Función que encuentra todos los caminos desde una posicion hasta todas las casillas adyacentes del mismo color
   def encontrarCaminos(tablero: List[Int], pos_encontrar: Int, pos: Int, N: Int, M: Int, size: Int, color: Int, pos_original: Int): List[Int] = {
@@ -216,10 +256,12 @@ object Main {
 
   //Funcion que cuenta el numero de casillas a borrar desde una posicion
   def contarLongitudCamino(tablero: List[Int], pos_encontrar: Int, pos: Int, N: Int, M: Int, size: Int, color: Int, pos_original: Int): Int = {
-    size match {
+    size match
+    {
       case 0 => 1
       case _ =>
-        if (pos < 0 || pos >= size || !contiene(tablero, pos, size)) {
+        if (pos < 0 || pos >= size || !contiene(tablero, pos, size))
+        {
           1
         }
         else {
@@ -263,6 +305,7 @@ object Main {
         }
     }
   }
+
   /**
    * Reemplaza las posiciones del tablero que han sido eliminadas
    * @param pos
@@ -272,8 +315,6 @@ object Main {
    * @param dificultad
    * @return tablero con nuevos colores
    */
-
-
   def reemplazarPosiciones(pos:Int, tablero:List[Int], N:Int, M:Int, dificultad:Int): List[Int] = {
     val contador:Int = contadorBorrar(tablero)
     //println(contadorBorrar(tablero))
@@ -290,7 +331,7 @@ object Main {
         }
         else
         {
-            nuevo
+          nuevo
         }
       }
     }
@@ -302,7 +343,7 @@ object Main {
       case 0 => tablero
       case _ =>
       {
-       // println(pos)
+        // println(pos)
         if (tablero(pos) == -1)
         {
           //println("Pos "+ pos+" = -1")
@@ -336,6 +377,7 @@ object Main {
       }
     }
   }
+
   def encontrarBomba(tablero: List[Int], pos_encontrar: Int, N: Int, M:Int): List[Int] = {
     //Contador de columna
     val numCol: Int = pos_encontrar % M;
@@ -358,7 +400,7 @@ object Main {
     }
     else
     {
-        tablero
+      tablero
     }
   }
 

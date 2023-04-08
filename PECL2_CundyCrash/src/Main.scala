@@ -6,27 +6,124 @@ import scala.math.ceil
 import scala.util.Random
 
 object Main {
+  //private val random = new Random(System.nanoTime())
+  private val vidas = 5
+
   def main(args: Array[String]): Unit = {
-    val tablero: List[Int] = List(1, 2, 3, 4, 1, 1, 1, 1, 2, 3, 2, 1, 1, 1, 2, 2)
-    mostrarTablero(tablero, 0, 4, 4)
-    val color: Int = getElem(4, tablero)
-    val tablero2: List[Int] = encontrarCaminos(tablero, 4, 0, 4, 4, 16, color, 4)
-    mostrarTablero(tablero2, 0, 4, 4)
-    val reemplazado:List[Int] = reemplazarPosiciones(0, tablero2, 4, 4, 4)
-    mostrarTablero(reemplazado, 0, 4, 4)
+    //Si se ha llamado al programa por comandos
+    if (obtenerLongitud(args) > 0) {
+      if (obtenerLongitud(args) == 5) {
+        val modoJuego = args(0).toCharArray
+        val dificultad = args(1).toInt
+        val numFilas = args(2).toInt
+        val numCol = args(3).toInt
+
+        println("Modo juego " + modoJuego)
+      }
+      else if (obtenerLongitud(args) < 5) throw new Error("Faltan argumentos en la llamada ")
+      else if (obtenerLongitud(args) > 5) throw new Error("Sobran argumentos en la llamdad")
+    }
+    else {
+      println("Introduce el numero de Filas del tablero: ")
+      val numFilas: Int = scala.io.StdIn.readInt()
+
+      println("Introduce el numero de columnas del tablero: ")
+      val numCol: Int = scala.io.StdIn.readInt()
+
+      println("Introduce la dificultad del juego: ")
+      val dificultad: Int = scala.io.StdIn.readInt()
+
+      println("Introduce el modo de juego (a o m): ")
+      val modoJuego: Char = scala.io.StdIn.readChar()
+      val size: Int = numFilas * numCol
+
+      val limiteNum: Int = definirDificultad(dificultad)
+
+      val tablero: List[Int] = inicializarTablero(Nil, limiteNum, numFilas * numCol)
+      mostrarTablero(tablero, 0, numFilas, numCol)
+      seleccionModoJuego(modoJuego, numFilas, numCol, dificultad, tablero)
+      //val tablero: List[Int] = List(1,1,3,4,1,1,1,1,2,3,2,1,1,1,2,2)
+    }
   }
 
-  def inicializarTablero(tablero:List[Int], dificultad:Int, size:Int): List[Int] = {
-    size match
+  def seleccionModoJuego(modoJuego: Char, numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int]): Unit = {
+    if (modoJuego == 'a' || modoJuego == 'A') jugarAutomatico(numFilas, numCol, dificultad, modoJuego, tablero)
+    else if (modoJuego == 'm' || modoJuego == 'M') jugarManual(numFilas, numCol, dificultad, modoJuego, tablero)
+    else throw new Error("Modo de juego incorrecto")
+  }
+
+  def jugarAutomatico(numFilas: Int, numCol: Int, dificultad: Int, modoJuego: Char, tablero: List[Int]): Unit = {
+    val random = new Random(System.nanoTime())
+    val coordX: Int = random.nextInt(numFilas)
+    val coordY: Int = random.nextInt(numCol)
+    println("Coordenada x = " + coordX + " Coordenada Y = " + coordY)
+
+    jugar(numFilas, numCol, dificultad, tablero, modoJuego, coordX, coordY)
+  }
+
+  def jugarManual(numFilas: Int, numCol: Int, dificultad: Int, modoJuego: Char, tablero: List[Int]): Unit = {
+    println("Introduce la coordenada X de la posicion a borrar : ")
+    val coordX: Int = scala.io.StdIn.readInt()
+
+    println("Introduce la coordenada Y de la posicion a borrar : ")
+    val coordY: Int = scala.io.StdIn.readInt()
+
+    jugar(numFilas, numCol, dificultad, tablero, modoJuego, coordX, coordY)
+  }
+
+  //Bucle del juego que se lleva a cabo hasta que se acaban las vidas del jugador
+  def jugar(numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int], modoJuego: Char, coordX: Int, coordY: Int): Unit = {
+    val size: Int = numCol * numFilas
+    vidas match {
+      case 0 => println("Has perdido")
+      case _ => {
+        val pos_encontrar: Int = coordX * numCol + coordY
+        val color: Int = getElem(pos_encontrar, tablero)
+
+        val tablero2: List[Int] = borrarSeleccion (tablero, pos_encontrar, size , numFilas, numCol, color, dificultad)
+        mostrarTablero(tablero2, 0, numFilas, numCol)
+
+        //Si solo borrar una casilla (no tiene adyacentes)
+        if(contadorBorrar(tablero2) == 1) vidas - 1
+
+        val tablero3: List[Int] = reemplazarPosiciones(0,tablero2, numFilas, numCol, dificultad)
+        mostrarTablero(tablero3,0,numFilas, numCol)
+
+        seleccionModoJuego(modoJuego, numFilas, numCol, dificultad, tablero3)
+
+      }
+    }
+  }
+
+  //Funcion que determina si posicion seleccionada es un bloque especial o se busca camino de forma normal
+  def borrarSeleccion(tablero : List[Int], pos_encontrar: Int, size : Int, numFilas: Int, numCol: Int, color: Int, dificultad: Int): List[Int] =
+  {
+    if(tablero(pos_encontrar) == 66)  insertarElementoPosicion(-1, pos_encontrar, realizarAccionBomba(tablero, 0, pos_encontrar, size, numCol))
+    else if(tablero(pos_encontrar) == 84) insertarElementoPosicion(-1, pos_encontrar, realizarAccionTNT(tablero, 0, pos_encontrar, size, numCol))
+    else if(tablero(pos_encontrar) > 7 && tablero(pos_encontrar) < 14)  insertarElementoPosicion(-1, pos_encontrar, realizarAccionRompecabezas(tablero, 0, pos_encontrar, size))
+    else
     {
+      val tablero2: List[Int] = encontrarCaminos(tablero, pos_encontrar, 0, numFilas, numCol, size, color, pos_encontrar)
+      val tablero3: List[Int] = encontrarBomba(tablero2, pos_encontrar, numFilas, numCol)
+      val tablero4: List[Int] = encontrarRompecabezasTNT(tablero3, pos_encontrar, numFilas, numCol, dificultad)
+      tablero4
+    }
+  }
+
+  def definirDificultad(dificultad: Int): Int = {
+    if (dificultad == 1) 4
+    else 6
+  }
+
+  def inicializarTablero(tablero: List[Int], dificultad: Int, size: Int): List[Int] = {
+    size match {
       case 0 => tablero
 
-      case _ =>
-      {
-        val secureRandom = new Random(System.nanoTime())
-        val numeroAleatorio:Int = Random.nextInt(dificultad) + 1
-        val nueva:List[Int] = concatenar(tablero, numeroAleatorio)
-        inicializarTablero(nueva, dificultad, size - 1)
+      case _ => {
+        //val secureRandom = new Random(System.nanoTime())
+        val random = new Random(System.nanoTime())
+        val numeroAleatorio: Int = random.nextInt(dificultad) + 1
+        numeroAleatorio :: inicializarTablero(tablero, dificultad, size - 1)
       }
     }
   }
@@ -55,7 +152,9 @@ object Main {
       {
         if(fila == 0) println("\n--------------")
         if (fila % M == 0) print("\n|")
-        print(l.head + "|")
+        if(l.head < 14 && l.head > 7 )  print("RC" + l.head % 7 + "|")    //Imprime bloque especial RC
+        else if (l.head > 14) print(l.head.toChar + "|")
+        else if(l.head < 7) print(l.head + "|")
         mostrarTablero(l.tail, fila + 1, N, M)
       }
   }
@@ -65,7 +164,7 @@ object Main {
     size match {
       case 0 => tablero
       case _ =>
-        if (pos < 0 || pos >= size || !tablero.isDefinedAt(pos)) {
+        if (pos < 0 || pos >= size || !contiene(tablero, pos, size)) {
           tablero
         }
         else {
@@ -79,27 +178,26 @@ object Main {
           //println("COLOR ACTUAL de pos ",pos," -> ", color)
           if (contiene(tablero, pos, size) && pos == pos_encontrar && (tablero(pos) == color || tablero(pos) == -1)) //tablero.isDefinedAt(pos)
           {
-            println("Entraaaa ", pos)
+            //println("Entraaaa ", pos)
             val nuevo_tablero: List[Int] = insertarElementoPosicion(-1, pos, tablero)
             if (col_siguiente < M && contiene(tablero, pos + 1, size) && col_siguiente != 0 && tablero(pos + 1) == color) // Derecha
             {
-              println("DERERCHAAA desde ", pos, "a", pos + 1)
+              //println("DERERCHAAA desde ", pos, "a", pos + 1)
               insertarElementoPosicion(-1, pos + 1, encontrarCaminos(nuevo_tablero, pos + 1, pos + 1, N, M, size, color, pos_original))
             }
             else if (col_anterior >= 0 && contiene(tablero, pos - 1, size) && col_anterior != M - 1 && tablero(pos - 1) == color) // Izquierda
             {
-              println("IZQUIERDAAA desde ", pos, "a", pos - 1)
+              //println("IZQUIERDAAA desde ", pos, "a", pos - 1)
               insertarElementoPosicion(-1, pos - 1, encontrarCaminos(nuevo_tablero, pos - 1, pos - 1, N, M, size, color, pos_original))
-
             }
             else if (fila_siguiente < N && contiene(tablero, pos + M, size) && fila_siguiente != 0 && tablero(pos + M) == color) // Abajo
             {
-              println("ABAJOOO desde ", pos, "a", pos + M)
+              //println("ABAJOOO desde ", pos, "a", pos + M)
               insertarElementoPosicion(-1, pos + M, encontrarCaminos(nuevo_tablero, pos + M, pos + M, N, M, size, color, pos_original))
             }
             else if (fila_anterior >= 0 && contiene(tablero, pos - M, size) && fila_anterior != N - 1 && tablero(pos - M) == color) // Arriba
             {
-              println("ARRIBAAA desde ", pos, "a", pos - M)
+              //println("ARRIBAAA desde ", pos, "a", pos - M)
               insertarElementoPosicion(-1, pos - M, encontrarCaminos(nuevo_tablero, pos - M, pos - M, N, M, size, color, pos_original))
             }
             else {
@@ -107,7 +205,8 @@ object Main {
             }
           }
           else {
-            insertarElementoPosicion(tablero(pos), pos, encontrarCaminos(tablero, pos_original, pos_original, N, M, size - 1, color, pos_original))
+            if (tablero(pos) == color) insertarElementoPosicion(-1, pos, encontrarCaminos(tablero, pos_original, pos_original, N, M, size - 1, color, pos_original))
+            else insertarElementoPosicion(tablero(pos), pos, encontrarCaminos(tablero, pos_original, pos_original, N, M, size - 1, color, pos_original))
           }
         }
     }
@@ -125,10 +224,10 @@ object Main {
 
   def reemplazarPosiciones(pos:Int, tablero:List[Int], N:Int, M:Int, dificultad:Int): List[Int] = {
     val contador:Int = contadorBorrar(tablero)
-    println(contadorBorrar(tablero))
+    //println(contadorBorrar(tablero))
     contador match {
       case 0 => {
-        println(contadorBorrar(tablero))
+        //println(contadorBorrar(tablero))
         if (contadorBorrar(tablero) == 0) {
           tablero
         }
@@ -140,8 +239,8 @@ object Main {
       }
       case _ => {
         val nuevo:List[Int] = reemplazarAux(0, tablero, N, M, dificultad, contador, N*M)
-        println("CONTADOR NUEVO " + contadorBorrar(nuevo))
-        mostrarTablero(nuevo,0, 4, 4)
+        //println("CONTADOR NUEVO " + contadorBorrar(nuevo))
+        //mostrarTablero(nuevo,0, 4, 4)
         if (contadorBorrar(nuevo) > 0)
         {
           reemplazarPosiciones(0, nuevo, N, M, dificultad)
@@ -158,33 +257,32 @@ object Main {
     size match {
       case 0 => tablero
       case _ =>  {
-        println(pos)
+       // println(pos)
         if (tablero(pos) == -1) {
-          println("Pos "+ pos+" = -1")
+          //println("Pos "+ pos+" = -1")
           val filaActual: Int = pos / M;
-          val colActual: Int = pos - filaActual * M;
+          val colActual: Int = pos % M;
           if (contiene(tablero, pos - M, N * M) && pos - M >= 0 && filaActual > 0 && filaActual <= N && tablero(pos - M) != -1) //Si la posicion de arriba es distinta de -1 se la asignamos a la posicion que nos llega y se la quitamos a la de arriba
           {
-            println("Entro a insertar posicion en " +  pos)
+            //println("Entro a insertar posicion en " +  pos)
             val elem: Int = tablero(pos - M)
             val nuevo: List[Int] = insertarElementoPosicion(-1, pos-M, tablero)
-            println("Elemento pos - M = ", pos - M, nuevo(pos - M))
+            //println("Elemento pos - M = ", pos - M, nuevo(pos - M))
             insertarElementoPosicion(elem, pos, reemplazarAux(pos + 1, nuevo, N, M, dificultad, contador, size - 1))
           }
           else if (filaActual == 0) //Si estas en la fila 0
           {
-            val secureRandom = new Random(System.nanoTime())
-            val color: Int = Random.nextInt(dificultad) + 1
+            val random = new Random(System.nanoTime())
+            val color: Int = random.nextInt(dificultad) + 1
             insertarElementoPosicion(color, pos, reemplazarAux(pos + 1, tablero, N, M, dificultad, contador, size - 1))
           }
           else
           {
-
             reemplazarAux(pos + 1, tablero, N, M, dificultad, contador, size - 1)
           }
         } else
         {
-          println("Pos "+ pos+" = color")
+          //println("Pos "+ pos+" = color")
           reemplazarAux(pos + 1, tablero, N, M, dificultad, contador, size - 1)
         }
       }
@@ -194,13 +292,13 @@ object Main {
     //Contador de columna
     val numCol: Int = pos_encontrar % M;
     val listaCol: List[Int] = getColumna(0, tablero, numCol, M)
-    println("Lista columnas", listaCol, "Num col", numCol)
+    //println("Lista columnas", listaCol, "Num col", numCol)
     val contCol:Int = contadorBorrar(listaCol)
 
     //Contador de fila
     val numFila: Int = pos_encontrar / M;
     val listaFila: List[Int] = getFila(numFila, tablero, M)
-    println("Lista Fila", listaFila)
+    //println("Lista Fila", listaFila)
     val contFila:Int = contadorBorrar(listaFila)
 
     //Comparamos los valores de los contadores
@@ -209,7 +307,8 @@ object Main {
       if(contCol == 5) insertarElementoPosicion(66, pos_encontrar, tablero)
       else if (contFila == 5) insertarElementoPosicion(66, pos_encontrar, tablero)
       else tablero
-    } else
+    }
+    else
     {
         tablero
     }
@@ -224,23 +323,87 @@ object Main {
    * @param dificultad
    * @return tablero
    */
-  def encontrarRompecabezasTNT(tablero:List[Int], pos_encontrar:Int, N:Int, M:Int, dificultad:Int):List[Int] = {
+  def encontrarRompecabezasTNT(tablero:List[Int], pos_encontrar:Int, N:Int, M:Int, dificultad:Int):List[Int] =
+  {
 
     val cont:Int = contadorBorrar(tablero)
 
     if (cont == 6) //Si el indice vale 6 es el TNT
     {
+      println("Encuentra TNT")
       insertarElementoPosicion(84, pos_encontrar, tablero)
     }
     else if (cont >= 7) //Si el indice es mayor de o igual de 7 introducimos un RC
     {
+      println("Encuentra rompecabezas")
       val secureRandom = new Random(System.nanoTime())
       val color: Int = Random.nextInt(dificultad) + 1
-      insertarElementoPosicion(color, pos_encontrar, tablero)
+      insertarElementoPosicion(7 + color, pos_encontrar, tablero)
     }
     else
     {
       tablero
+    }
+  }
+
+  //Funcion que lleva a cabo la accion del rompecabezas de eliminar todas las casillas que tengan su color
+  def realizarAccionRompecabezas(tablero:List[Int], pos:Int, pos_encontrar:Int, size:Int): List[Int] =
+  {
+    val colorBorrar : Int = tablero(pos_encontrar) % 7
+    size match
+    {
+      case 0 =>  insertarElementoPosicion(-1, pos_encontrar, tablero)
+      case _ =>
+      {
+        if(tablero(pos) == colorBorrar) insertarElementoPosicion(-1, pos, realizarAccionRompecabezas(tablero, pos + 1, pos_encontrar, size - 1))
+        else insertarElementoPosicion(tablero(pos), pos, realizarAccionRompecabezas(tablero, pos + 1, pos_encontrar, size - 1))
+      }
+    }
+  }
+
+  //Funcion que lleva a cabo la accion de la bomba de eliminar todas las casillas de su misma fila y columna
+  def realizarAccionBomba(tablero: List[Int], pos: Int, pos_encontrar: Int, size: Int, numCol: Int): List[Int] =
+  {
+    size match
+    {
+      case 0 =>  insertarElementoPosicion(-1, pos_encontrar, tablero)
+      case _ =>
+      {
+        val filaActual: Int = pos / numCol
+        val colActual : Int = pos % numCol
+
+        val filaBorrar: Int = pos_encontrar / numCol
+        val colBorrar: Int = pos_encontrar % numCol
+
+        if(filaActual == filaBorrar || colActual == colBorrar)  insertarElementoPosicion(-1, pos, realizarAccionBomba(tablero, pos + 1, pos_encontrar, size - 1, numCol))
+        else insertarElementoPosicion(tablero(pos), pos, realizarAccionBomba(tablero, pos + 1, pos_encontrar, size - 1, numCol))
+      }
+    }
+  }
+
+  //Funcion que lleva a cabo la accion del TNT de eliminar todas las casillas en un radio de 4 casillas
+  def realizarAccionTNT(tablero: List[Int], pos: Int, pos_encontrar: Int, size: Int, numCol: Int): List[Int] =
+  {
+    size match
+    {
+      case 0  => insertarElementoPosicion(-1, pos_encontrar, tablero)
+      case _ =>
+      {
+        val limiteDerecho: Int = (pos_encontrar + 4) / numCol
+        val limiteIzquierdo: Int = (pos_encontrar - 4) / numCol
+        val limiteArriba: Int = (pos_encontrar - 4) % numCol
+        val limiteAbajo: Int = (pos_encontrar + 4) % numCol
+
+        val filaActual: Int = pos / numCol
+
+        if (filaActual < limiteDerecho && filaActual > limiteIzquierdo && filaActual < limiteAbajo && filaActual > limiteArriba)
+        {
+          println("EXPLOTA " + pos)
+          insertarElementoPosicion(-1, pos, realizarAccionTNT(tablero, pos + 1, pos_encontrar, size - 1, numCol))
+        }
+        else
+          insertarElementoPosicion(tablero(pos), pos, realizarAccionTNT(tablero, pos + 1, pos_encontrar, size - 1, numCol))
+      }
     }
   }
 
@@ -309,6 +472,12 @@ object Main {
     }
   }
 
+  //Funcion que calcula la longitud de un array
+  def obtenerLongitud(array: Array[String]): Int =
+  {
+    if (array.isEmpty) 0
+    else 1 + obtenerLongitud(array.tail)
+  }
   //Obtiene los valores de la fila, utilizado para encontrar bomba
   def getFila(fila: Int, matriz: List[Int], N:Int): List[Int] = matriz match {
     case Nil => Nil

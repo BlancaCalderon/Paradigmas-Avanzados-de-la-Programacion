@@ -80,7 +80,7 @@ object Main {
             {
               if (longActual > mejorLong)
                 conseguirMejorJugada(tablero, pos + 1, numFilas, numCol, size, dificultad, pos)
-              else 
+              else
                 conseguirMejorJugada(tablero, pos + 1, numFilas, numCol, size, dificultad, mejorPos)
             }
             else
@@ -97,10 +97,11 @@ object Main {
   {
     //Si posicion tiene un bloque especial
     if(tablero(pos) > 6)  contadorBorrar(borrarSeleccion(tablero, pos, size, tablero(pos), numFilas, numCol, dificultad)) //Calcula casillas que se borraran
-    else contarLongitudCamino(tablero, pos, 0, numFilas, numCol, size, tablero(pos), pos) //Si no es un bloque especial calcula camino normal
+    else contadorBorrar(encontrarCaminosAux(tablero, pos, 0, numFilas, numCol, size, tablero(pos), pos)) //Si no es un bloque especial calcula camino normal
   }
 
-  def jugarManual(numFilas: Int, numCol: Int, dificultad: Int, modoJuego: Char, tablero: List[Int], vidas: Int): Unit = {
+  def jugarManual(numFilas: Int, numCol: Int, dificultad: Int, modoJuego: Char, tablero: List[Int], vidas: Int): Unit =
+  {
     println("Introduce la coordenada X de la posicion a borrar : ")
     val coordX: Int = scala.io.StdIn.readInt()
 
@@ -123,7 +124,7 @@ object Main {
       {
         val color: Int = getElem(pos_encontrar, tablero)
 
-        println("Longitud del camino = " + contarLongitudCamino(tablero, pos_encontrar,0, numFilas, numCol, size, color, pos_encontrar))
+        println("Longitud del camino = " + contadorBorrar(encontrarCaminosAux(tablero, pos_encontrar, 0, numFilas, numCol, size, tablero(pos_encontrar), pos_encontrar)))//contarLongitudCamino(tablero, pos_encontrar,0, numFilas, numCol, size, color, pos_encontrar))
         val tablero2: List[Int] = borrarSeleccion (tablero, pos_encontrar, size , numFilas, numCol, color, dificultad)
         mostrarTablero(tablero2, 0, numFilas, numCol)
 
@@ -146,7 +147,7 @@ object Main {
     else if(tablero(pos_encontrar) > 7 && tablero(pos_encontrar) < 14)  insertarElementoPosicion(-1, pos_encontrar, realizarAccionRompecabezas(tablero, 0, pos_encontrar, size))
     else
     {
-      val tablero2: List[Int] = encontrarCaminos(tablero, pos_encontrar, 0, numFilas, numCol, size, color, pos_encontrar)
+      val tablero2: List[Int] = encontrarCaminosAux(tablero, pos_encontrar, 0, numFilas, numCol, size, color, pos_encontrar)
       val tablero3: List[Int] = encontrarBomba(tablero2, pos_encontrar, numFilas, numCol)
       val tablero4: List[Int] = encontrarRompecabezasTNT(tablero3, pos_encontrar, numFilas, numCol, dificultad)
       tablero4
@@ -199,59 +200,63 @@ object Main {
     }
   }
 
+  def encontrarCaminosAux(tablero: List[Int], pos_encontrar: Int, pos: Int, N: Int, M: Int, size: Int, color: Int, pos_original: Int): List[Int] = {
+    if (pos + 1 == size) tablero
+    else {
+      val nuevo_tablero: List[Int] = encontrarCaminos(tablero, pos_encontrar, pos, N, M, size, color, pos_original)
+      if (nuevo_tablero(pos) == -1) {
+        encontrarCaminosAux(encontrarCaminos(nuevo_tablero, pos, pos, N, M, size, color, pos_original), pos_encontrar, pos + 1, N, M, size, color, pos_original)
+      }
+      else {
+        encontrarCaminosAux(nuevo_tablero, pos_encontrar, pos + 1, N, M, size, color, pos_original)
+      }
+    }
+  }
+
   //Función que encuentra todos los caminos desde una posicion hasta todas las casillas adyacentes del mismo color
   def encontrarCaminos(tablero: List[Int], pos_encontrar: Int, pos: Int, N: Int, M: Int, size: Int, color: Int, pos_original: Int): List[Int] = {
-    size match
-    {
-      case 0 => tablero
-      case _ =>
-        if (pos < 0 || pos >= size || !contiene(tablero, pos, size)) {
-          tablero
-        }
-        else
+    if (pos < 0 || pos >= size || !contiene(tablero, pos, size)) {
+      tablero
+    }
+    else {
+      val fila_siguiente: Int = ((pos + M) / M)
+      val fila_anterior: Int = ((pos - M) / M)
+
+      val col_siguiente: Int = (pos + 1) % M
+      val col_anterior: Int = (pos - 1) % M
+
+      //println("COLOR ACTUAL de pos ",pos," -> ", color)
+      if (contiene(tablero, pos, size) && pos == pos_encontrar && (tablero(pos) == color || tablero(pos) == -1)) //tablero.isDefinedAt(pos)
+      {
+        //println("Entraaaa ", pos)
+        val nuevo_tablero: List[Int] = insertarElementoPosicion(-1, pos, tablero)
+        if (col_siguiente < M && contiene(tablero, pos + 1, size) && col_siguiente != 0 && tablero(pos + 1) == color) // Derecha
         {
-          val fila_siguiente: Int = ((pos + M) / M)
-          val fila_anterior: Int = ((pos - M) / M)
-
-          val col_siguiente: Int = (pos + 1) % M
-          val col_anterior: Int = (pos - 1) % M
-
-
-          //println("COLOR ACTUAL de pos ",pos," -> ", color)
-          if (contiene(tablero, pos, size) && pos == pos_encontrar && (tablero(pos) == color || tablero(pos) == -1)) //tablero.isDefinedAt(pos)
-          {
-            //println("Entraaaa ", pos)
-            val nuevo_tablero: List[Int] = insertarElementoPosicion(-1, pos, tablero)
-            if (col_siguiente < M && contiene(tablero, pos + 1, size) && col_siguiente != 0 && tablero(pos + 1) == color) // Derecha
-            {
-              //println("DERERCHAAA desde ", pos, "a", pos + 1)
-              insertarElementoPosicion(-1, pos + 1, encontrarCaminos(nuevo_tablero, pos + 1, pos + 1, N, M, size, color, pos_original))
-            }
-            else if (col_anterior >= 0 && contiene(tablero, pos - 1, size) && col_anterior != M - 1 && tablero(pos - 1) == color) // Izquierda
-            {
-              //println("IZQUIERDAAA desde ", pos, "a", pos - 1)
-              insertarElementoPosicion(-1, pos - 1, encontrarCaminos(nuevo_tablero, pos - 1, pos - 1, N, M, size, color, pos_original))
-            }
-            else if (fila_siguiente < N && contiene(tablero, pos + M, size) && fila_siguiente != 0 && tablero(pos + M) == color) // Abajo
-            {
-              //println("ABAJOOO desde ", pos, "a", pos + M)
-              insertarElementoPosicion(-1, pos + M, encontrarCaminos(nuevo_tablero, pos + M, pos + M, N, M, size, color, pos_original))
-            }
-            else if (fila_anterior >= 0 && contiene(tablero, pos - M, size) && fila_anterior != N - 1 && tablero(pos - M) == color) // Arriba
-            {
-              //println("ARRIBAAA desde ", pos, "a", pos - M)
-              insertarElementoPosicion(-1, pos - M, encontrarCaminos(nuevo_tablero, pos - M, pos - M, N, M, size, color, pos_original))
-            }
-            else
-            {
-              encontrarCaminos(nuevo_tablero, pos_original, pos_original, N, M, size - 1, color, pos_original)
-            }
-          }
-          else
-          {
-            encontrarCaminos(tablero, pos_original, pos_original, N, M, size - 1, color, pos_original)
-          }
+          //println("DERERCHAAA desde ", pos, "a", pos + 1)
+          insertarElementoPosicion(-1, pos + 1, encontrarCaminos(nuevo_tablero, pos + 1, pos + 1, N, M, size, color, pos_original))
         }
+        else if (col_anterior >= 0 && contiene(tablero, pos - 1, size) && col_anterior != M - 1 && tablero(pos - 1) == color) // Izquierda
+        {
+          //println("IZQUIERDAAA desde ", pos, "a", pos - 1)
+          insertarElementoPosicion(-1, pos - 1, encontrarCaminos(nuevo_tablero, pos - 1, pos - 1, N, M, size, color, pos_original))
+        }
+        else if (fila_siguiente < N && contiene(tablero, pos + M, size) && fila_siguiente != 0 && tablero(pos + M) == color) // Abajo
+        {
+          //println("ABAJOOO desde ", pos, "a", pos + M)
+          insertarElementoPosicion(-1, pos + M, encontrarCaminos(nuevo_tablero, pos + M, pos + M, N, M, size, color, pos_original))
+        }
+        else if (fila_anterior >= 0 && contiene(tablero, pos - M, size) && fila_anterior != N - 1 && tablero(pos - M) == color) // Arriba
+        {
+          //println("ARRIBAAA desde ", pos, "a", pos - M)
+          insertarElementoPosicion(-1, pos - M, encontrarCaminos(nuevo_tablero, pos - M, pos - M, N, M, size, color, pos_original))
+        }
+        else {
+          encontrarCaminos(nuevo_tablero, pos_original, pos_original, N, M, size - 1, color, pos_original)
+        }
+      }
+      else {
+        encontrarCaminos(tablero, pos_original, pos_original, N, M, size - 1, color, pos_original)
+      }
     }
   }
 
@@ -595,8 +600,6 @@ object Main {
       if (tail.length <= n - 1) l
       else dejar(n, tail)
   }
-  //Une los tableros
-
   def concatenar(tablero: List[Int], e: Int): List[Int] = {
     tablero match {
       case Nil => e :: Nil
@@ -608,53 +611,4 @@ object Main {
     }
   }
 
-  def unirCaminos(pos: Int, tablero: List[Int], derecha: List[Int], izquierda: List[Int], arriba: List[Int], abajo: List[Int]): List[Int] = {
-    tablero match
-    {
-      case Nil => tablero
-
-      case head :: Nil =>
-        if (getElem(pos, derecha) == -1 || getElem(pos, izquierda) == -1 || getElem(pos, arriba) == -1 || getElem(pos, abajo) == -1) {
-          -1::Nil
-        }
-        else
-        {
-          head::Nil
-        }
-
-      case head :: tail =>
-      {
-        if (getElem(pos, derecha) == -1 || getElem(pos, izquierda) == -1 || getElem(pos, arriba) == -1 || getElem(pos, abajo) == -1)
-        {
-          -1::unirCaminos(pos+1, tail, derecha, izquierda, arriba, abajo)
-        } else {
-          head::unirCaminos(pos+1, tail, derecha, izquierda, arriba, abajo)
-        }
-      }
-    }
-  }
-
-  //Une los tableros
-  def unirTableros(pos: Int, tablero: List[Int], nuevo: List[Int]): List[Int] = {
-    tablero match {
-      case Nil => Nil
-
-      case head :: Nil =>
-        if (getElem(pos, nuevo) == -1) {
-          println(pos, " de la lista ", nuevo)
-          -1 :: Nil
-        }
-        else {
-          head :: Nil
-        }
-
-      case head :: tail => {
-        if (getElem(pos, nuevo) == -1) {
-          -1 :: unirTableros(pos + 1, tail, nuevo)
-        } else {
-          head :: unirTableros(pos + 1, tail, nuevo)
-        }
-      }
-    }
-  }
 }

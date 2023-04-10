@@ -1,4 +1,5 @@
 
+import java.util.function.DoubleToIntFunction
 import scala.util.Random
 
 object Main {
@@ -57,49 +58,46 @@ object Main {
     val coordY: Int = random.nextInt(numCol)
     println("Coordenada x = " + coordX + " Coordenada Y = " + coordY)*/
 
-    val pos : Int = conseguirMejorJugada(tablero, 0, numFilas, numCol, numFilas * numCol, 0)
+    val pos : Int = conseguirMejorJugada(tablero, 0, numFilas, numCol, numFilas * numCol, dificultad, 0)
     println("Posicion optima a borrar " + pos)
     jugar(numFilas, numCol, dificultad, tablero, modoJuego, pos, vidas)
   }
 
   //Funcion que calcula cual seria la mejor posicion a borrar (mayor longitud de camino)
-  def conseguirMejorJugada(tablero: List[Int], pos: Int, numFilas: Int, numCol: Int, size : Int, mejorPos : Int): Int =
+  def conseguirMejorJugada(tablero: List[Int], pos: Int, numFilas: Int, numCol: Int, size : Int, dificultad: Int, mejorPos : Int): Int =
   {
-    size match
+    val tablero_aux: List[Int] = tablero
+    if(pos == size) mejorPos
+    else
     {
-      case 0 => mejorPos
-      case _ =>
-      {
         if(!contiene(tablero, pos, size)) mejorPos
         else
         {
-          if(tablero(pos) > 6)
-          {
-            println("BORRO BLOQUE ESPECIAL " + tablero(pos)+ " EN " + pos)
-            pos   //Si la posicion es un bloque especial se borra esa
-          }
-          else
-          {
-            val mejorLong: Int = contarLongitudCamino(tablero, mejorPos, 0, numFilas, numCol, size, tablero(mejorPos), mejorPos)
-            val longActual: Int = contarLongitudCamino(tablero, pos, 0, numFilas, numCol, size, tablero(pos), pos)
+            val longActual: Int = calcularLongitud(tablero, pos, numFilas, numCol, size, dificultad)
+            val mejorLong: Int = calcularLongitud(tablero, mejorPos, numFilas, numCol, size, dificultad)
 
             if (contiene(tablero, pos + 1, size))
             {
               if (longActual > mejorLong)
-                conseguirMejorJugada(tablero, pos + 1, numFilas, numCol, size - 1, pos)
-              else
-                conseguirMejorJugada(tablero, pos + 1, numFilas, numCol, size - 1, mejorPos)
+                conseguirMejorJugada(tablero, pos + 1, numFilas, numCol, size, dificultad, pos)
+              else 
+                conseguirMejorJugada(tablero, pos + 1, numFilas, numCol, size, dificultad, mejorPos)
             }
             else
             {
-              if (longActual > mejorLong)
-                pos
+              if (longActual > mejorLong)  pos
               else mejorPos
             }
-          }
         }
       }
     }
+
+  //Devuelve longitud de un camino teniendo en cuenta si la posicion corresponde a un bloque especial
+  def calcularLongitud(tablero: List[Int], pos: Int, numFilas: Int, numCol: Int, size : Int, dificultad: Int): Int =
+  {
+    //Si posicion tiene un bloque especial
+    if(tablero(pos) > 6)  contadorBorrar(borrarSeleccion(tablero, pos, size, tablero(pos), numFilas, numCol, dificultad)) //Calcula casillas que se borraran
+    else contarLongitudCamino(tablero, pos, 0, numFilas, numCol, size, tablero(pos), pos) //Si no es un bloque especial calcula camino normal
   }
 
   def jugarManual(numFilas: Int, numCol: Int, dificultad: Int, modoJuego: Char, tablero: List[Int], vidas: Int): Unit = {
@@ -129,10 +127,12 @@ object Main {
         val tablero2: List[Int] = borrarSeleccion (tablero, pos_encontrar, size , numFilas, numCol, color, dificultad)
         mostrarTablero(tablero2, 0, numFilas, numCol)
 
+        val vida2: Int = restarVidas(tablero2, vidas, pos_encontrar)
+
         val tablero3: List[Int] = reemplazarPosiciones(0,tablero2, numFilas, numCol, dificultad)
         mostrarTablero(tablero3,0,numFilas, numCol)
 
-        seleccionModoJuego(modoJuego, numFilas, numCol, dificultad, tablero3, restarVidas(tablero2, vidas, pos_encontrar))
+        seleccionModoJuego(modoJuego, numFilas, numCol, dificultad, tablero3, vida2)
 
       }
     }
@@ -158,6 +158,7 @@ object Main {
   {
     if (contadorBorrar(tablero) == 1 && tablero(pos_encontrar) < 7 )
     {
+      println("quito vida pos " + pos_encontrar + " contenido " + tablero(pos_encontrar))
       vidas - 1
     }
     else vidas
@@ -213,7 +214,7 @@ object Main {
           val fila_anterior: Int = ((pos - M) / M)
 
           val col_siguiente: Int = (pos + 1) % M
-          val col_anterior: Int = if (pos % M == 0) M - 1 else (pos - 1) % M
+          val col_anterior: Int = (pos - 1) % M
 
 
           //println("COLOR ACTUAL de pos ",pos," -> ", color)
@@ -269,7 +270,7 @@ object Main {
           val fila_anterior: Int = ((pos - M) / M)
 
           val col_siguiente: Int = (pos + 1) % M
-          val col_anterior: Int = if (pos % M == 0) M - 1 else (pos - 1) % M
+          val col_anterior: Int =  (pos - 1) % M
 
 
           //println("COLOR ACTUAL de pos ",pos," -> ", color)
@@ -299,7 +300,8 @@ object Main {
             }
             else contarLongitudCamino(nuevo_tablero, pos_original, pos_original, N, M, size - 1, color, pos_original)
           }
-          else {
+          else
+          {
             contarLongitudCamino(tablero, pos_original, pos_original, N, M, size - 1, color, pos_original)
           }
         }

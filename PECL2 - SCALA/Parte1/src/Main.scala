@@ -35,7 +35,7 @@ object Main {
       val limiteNum: Int = definirDificultad(dificultad)
       val tablero: List[Int] = inicializarTablero(Nil, limiteNum, numFilas*numCol)
       mostrarTablero(tablero, 0, numFilas, numCol)
-      seleccionModoJuego(modoJuego.toChar, numFilas, numCol, limiteNum, tablero, vidas)
+      jugar(numFilas, numCol, limiteNum, tablero, modoJuego.toChar, vidas)
     }
     else if (args < 5) throw new Error("Faltan argumentos en la llamada ")
     else if (args > 5) throw new Error("Sobran argumentos en la llamdad")
@@ -63,7 +63,7 @@ object Main {
 
     val tablero: List[Int] = inicializarTablero(Nil, limiteNum, size)
     mostrarTablero(tablero, 0, numFilas, numCol)
-    seleccionModoJuego(modoJuego, numFilas, numCol, limiteNum, tablero, vidas)
+    jugar(numFilas, numCol, limiteNum, tablero, modoJuego, vidas)
   }
 
   /**
@@ -75,47 +75,24 @@ object Main {
    * @param tablero
    * @param vidas
    */
-  def seleccionModoJuego(modoJuego: Char, numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int], vidas: Int): Unit = {
-    if (modoJuego == 'a' || modoJuego == 'A') jugarAutomatico(numFilas, numCol, dificultad, modoJuego, tablero, vidas)
-    else if (modoJuego == 'm' || modoJuego == 'M') jugarManual(numFilas, numCol, dificultad, modoJuego, tablero, vidas)
+  def seleccionModoJuego(modoJuego: Char, numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int]): Int = {
+    if (modoJuego == 'a' || modoJuego == 'A') {
+      val random = new Random(System.nanoTime())
+      val coordX: Int = random.nextInt(numFilas)
+      val coordY: Int = random.nextInt(numCol)
+      println("Coordenada x = " + coordX + " Coordenada Y = " + coordY)
+      coordX * numCol + coordY
+    }
+    else if (modoJuego == 'm' || modoJuego == 'M') {
+      println("Introduce la coordenada X de la posicion a borrar : ")
+      val coordX: Int = scala.io.StdIn.readInt()
+
+      println("Introduce la coordenada Y de la posicion a borrar : ")
+      val coordY: Int = scala.io.StdIn.readInt()
+
+      coordX * numCol + coordY
+    }
     else throw new Error("Modo de juego incorrecto")
-  }
-
-  /**
-   * Genera coordenas de forma aleatoria
-   * @param numFilas
-   * @param numCol
-   * @param dificultad
-   * @param modoJuego
-   * @param tablero
-   * @param vidas
-   */
-  def jugarAutomatico(numFilas: Int, numCol: Int, dificultad: Int, modoJuego: Char, tablero: List[Int], vidas : Int): Unit = {
-    val random = new Random(System.nanoTime())
-    val coordX: Int = random.nextInt(numFilas)
-    val coordY: Int = random.nextInt(numCol)
-    println("Coordenada x = " + coordX + " Coordenada Y = " + coordY)
-
-    jugar(numFilas, numCol, dificultad, tablero, modoJuego, coordX, coordY, vidas)
-  }
-
-  /**
-   * Usuario introduce las coordenadas de forma manual por teclado
-   * @param numFilas
-   * @param numCol
-   * @param dificultad
-   * @param modoJuego
-   * @param tablero
-   * @param vidas
-   */
-  def jugarManual(numFilas: Int, numCol: Int, dificultad: Int, modoJuego: Char, tablero: List[Int], vidas: Int): Unit = {
-    println("Introduce la coordenada X de la posicion a borrar : ")
-    val coordX: Int = scala.io.StdIn.readInt()
-
-    println("Introduce la coordenada Y de la posicion a borrar : ")
-    val coordY: Int = scala.io.StdIn.readInt()
-
-    jugar(numFilas, numCol, dificultad, tablero, modoJuego, coordX, coordY, vidas)
   }
 
   /**
@@ -129,24 +106,25 @@ object Main {
    * @param coordY
    * @param vidas
    */
-  def jugar(numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int], modoJuego: Char, coordX: Int, coordY: Int, vidas: Int): Unit = {
+  def jugar(numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int], modoJuego: Char, vidas: Int): Unit = {
     val size: Int = numCol * numFilas
     println("VIDAS " + vidas)
-    vidas match
-    {
+    vidas match {
       case 0 => println("Has perdido")
-      case _ =>
-      {
-        val pos_encontrar: Int = coordX * numCol + coordY
+
+      case _ => {
+        val pos_encontrar: Int = seleccionModoJuego(modoJuego, numFilas, numCol, dificultad, tablero)
         val color: Int = getElem(pos_encontrar, tablero)
 
-        println("Longitud del camino = " + contarPosicionesBorradas(encontrarCaminosAux(tablero, pos_encontrar, 0, numFilas, numCol, size, tablero(pos_encontrar), pos_encontrar)))
-        val tablero2: List[Int] = determinarAccion (tablero, pos_encontrar, size , numFilas, numCol, color, dificultad)
+        val tablero2: List[Int] = determinarAccion(tablero, pos_encontrar, size, numFilas, numCol, color, dificultad)
+        mostrarTablero(tablero2, 0, numFilas, numCol)
 
-        val tablero3: List[Int] = reemplazarPosiciones(0,tablero2, numFilas, numCol, dificultad)
-        mostrarTablero(tablero3,0,numFilas, numCol)
+        val vida2: Int = restarVidas(tablero2, vidas, pos_encontrar)
 
-        seleccionModoJuego(modoJuego, numFilas, numCol, dificultad, tablero3, restarVidas(tablero2, vidas, pos_encontrar))
+        val tablero3: List[Int] = reemplazarPosiciones(0, tablero2, numFilas, numCol, dificultad)
+        mostrarTablero(tablero3, 0, numFilas, numCol)
+
+        jugar(numFilas, numCol, dificultad, tablero3, modoJuego, vida2)
       }
     }
   }
@@ -468,15 +446,11 @@ object Main {
    */
   def realizarAccionRompecabezas(tablero:List[Int], pos:Int, pos_encontrar:Int, size:Int): List[Int] =
   {
-    val colorBorrar : Int = tablero(pos_encontrar) % 7
-    size match
-    {
-      case 0 =>  insertarElementoPosicion(-1, pos_encontrar, tablero)
-      case _ =>
-      {
-        if(tablero(pos) == colorBorrar) insertarElementoPosicion(-1, pos, realizarAccionRompecabezas(tablero, pos + 1, pos_encontrar, size - 1))
-        else insertarElementoPosicion(tablero(pos), pos, realizarAccionRompecabezas(tablero, pos + 1, pos_encontrar, size - 1))
-      }
+    val colorBorrar: Int = tablero(pos_encontrar) % 7
+    if (pos >= size - 1) insertarElementoPosicion(-1, pos_encontrar, tablero)
+    else {
+      if (tablero(pos) == colorBorrar) insertarElementoPosicion(-1, pos, realizarAccionRompecabezas(tablero, pos + 1, pos_encontrar, size))
+      else insertarElementoPosicion(tablero(pos), pos, realizarAccionRompecabezas(tablero, pos + 1, pos_encontrar, size))
     }
   }
 
@@ -491,20 +465,16 @@ object Main {
    */
   def realizarAccionBomba(tablero: List[Int], pos: Int, pos_encontrar: Int, size: Int, numCol: Int): List[Int] =
   {
-    size match
-    {
-      case 0 =>  insertarElementoPosicion(-1, pos_encontrar, tablero)
-      case _ =>
-      {
-        val filaActual: Int = pos / numCol
-        val colActual : Int = pos % numCol
+    if (pos >= size - 1) insertarElementoPosicion(-1, pos_encontrar, tablero)
+    else {
+      val filaActual: Int = pos / numCol
+      val colActual: Int = pos % numCol
 
-        val filaBorrar: Int = pos_encontrar / numCol
-        val colBorrar: Int = pos_encontrar % numCol
+      val filaBorrar: Int = pos_encontrar / numCol
+      val colBorrar: Int = pos_encontrar % numCol
 
-        if(filaActual == filaBorrar || colActual == colBorrar) insertarElementoPosicion(-1, pos, realizarAccionBomba(tablero, pos + 1, pos_encontrar, size - 1, numCol))
-        else insertarElementoPosicion(tablero(pos), pos, realizarAccionBomba(tablero, pos + 1, pos_encontrar, size - 1, numCol))
-      }
+      if (filaActual == filaBorrar || colActual == colBorrar) insertarElementoPosicion(-1, pos, realizarAccionBomba(tablero, pos + 1, pos_encontrar, size, numCol))
+      else insertarElementoPosicion(tablero(pos), pos, realizarAccionBomba(tablero, pos + 1, pos_encontrar, size, numCol))
     }
   }
 
@@ -520,25 +490,21 @@ object Main {
    */
   def realizarAccionTNT(tablero: List[Int], pos: Int, pos_encontrar: Int, size: Int, numCol: Int, numFilas : Int): List[Int] =
   {
-    size match
-    {
-      case 0  => insertarElementoPosicion(-1, pos_encontrar, tablero)
-      case _ =>
-      {
-        val filaActual: Int = pos / numCol
-        val colActual: Int = pos % numCol
+    if (pos >= size - 1) insertarElementoPosicion(-1, pos_encontrar, tablero)
+    else {
+      val filaActual: Int = pos / numCol
+      val colActual: Int = pos % numCol
 
-        val limiteDerecho: Int = if((colActual + 4) < numCol) colActual + 4 else numCol - 1
-        val limiteIzquierdo: Int = if((colActual - 4) < 0) 0 else filaActual - 4
-        val limiteArriba: Int = if((filaActual - 4) < 0) 0 else colActual - 4
-        val limiteAbajo: Int = if((filaActual + 4) < numFilas) filaActual + 4 else numFilas - 1
+      val limiteDerecho: Int = if ((colActual + 4) < numCol) colActual + 4 else numCol - 1
+      val limiteIzquierdo: Int = if ((colActual - 4) < 0) 0 else filaActual - 4
+      val limiteArriba: Int = if ((filaActual - 4) < 0) 0 else colActual - 4
+      val limiteAbajo: Int = if ((filaActual + 4) < numFilas) filaActual + 4 else numFilas - 1
 
-        if (colActual < limiteDerecho && colActual > limiteIzquierdo && filaActual < limiteAbajo && filaActual > limiteArriba)
-          insertarElementoPosicion(-1, pos, realizarAccionTNT(tablero, pos + 1, pos_encontrar, size - 1, numCol, numFilas))
+      if (colActual < limiteDerecho && colActual > limiteIzquierdo && filaActual < limiteAbajo && filaActual > limiteArriba)
+        insertarElementoPosicion(-1, pos, realizarAccionTNT(tablero, pos + 1, pos_encontrar, size, numCol, numFilas))
 
-        else
-          insertarElementoPosicion(tablero(pos), pos, realizarAccionTNT(tablero, pos + 1, pos_encontrar, size - 1, numCol, numFilas))
-      }
+      else
+        insertarElementoPosicion(tablero(pos), pos, realizarAccionTNT(tablero, pos + 1, pos_encontrar, size, numCol, numFilas))
     }
   }
 

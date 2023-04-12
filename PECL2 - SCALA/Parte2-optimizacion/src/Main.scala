@@ -4,69 +4,89 @@ import scala.util.Random
 
 object Main {
 
-  def main(args: Array[String]): Unit =
-  {
-    val vidas : Int = 5
-    //Si se ha llamado al programa por comandos
-    if (obtenerLongitud(args) > 0) {
-      if (obtenerLongitud(args) == 5) {
-        val modoJuego = args(0).toCharArray
-        val dificultad = args(1).toInt
-        val numFilas = args(2).toInt
-        val numCol = args(3).toInt
-
-        println("Modo juego " + modoJuego)
-      }
-      else if (obtenerLongitud(args) < 5) throw new Error("Faltan argumentos en la llamada ")
-      else if (obtenerLongitud(args) > 5) throw new Error("Sobran argumentos en la llamdad")
+  def main(args: Array[String]): Unit = {
+    val vidas: Int = 5
+    if (obtenerLongitud(args) > 0) { //Si se ha llamado al programa por comandos
+      val modoJuego: Array[Char] = args(0).toCharArray
+      programaConsola(obtenerLongitud(args), modoJuego(0), args(1).toInt, args(2).toInt, args(3).toInt, vidas)
     }
-    else
+    else //Si no se ha llamado al programa por comandos
     {
-      println("Introduce el numero de Filas del tablero: ")
-      val numFilas: Int = scala.io.StdIn.readInt()
+      programaTeclado(vidas)
+    }
+  }
 
-      println("Introduce el numero de columnas del tablero: ")
-      val numCol: Int = scala.io.StdIn.readInt()
-
-      println("Introduce la dificultad del juego: ")
-      val dificultad: Int = scala.io.StdIn.readInt()
-
-      println("Introduce el modo de juego (a o m): ")
-      val modoJuego: Char = scala.io.StdIn.readChar()
-      val size: Int = numFilas * numCol
-
+  /**
+   * Recibe los datos introducidos por el usuario por consola
+   *
+   * @param args
+   * @param modoJuego
+   * @param dificultad
+   * @param numFilas
+   * @param numCol
+   * @param vidas
+   */
+  def programaConsola(args: Int, modoJuego: Int, dificultad: Int, numFilas: Int, numCol: Int, vidas: Int): Unit = {
+    if (args == 5) {
+      println("Modo juego " + modoJuego)
       val limiteNum: Int = definirDificultad(dificultad)
-
       val tablero: List[Int] = inicializarTablero(Nil, limiteNum, numFilas * numCol)
       mostrarTablero(tablero, 0, numFilas, numCol)
-      seleccionModoJuego(modoJuego, numFilas, numCol, limiteNum, tablero, vidas)
-      //val tablero: List[Int] = List(1,1,3,4,1,1,1,1,2,3,2,1,1,1,2,2)
+      jugar(numFilas, numCol, limiteNum, tablero, modoJuego.toChar, vidas)
     }
+    else if (args < 5) throw new Error("Faltan argumentos en la llamada ")
+    else if (args > 5) throw new Error("Sobran argumentos en la llamdad")
   }
 
-  def seleccionModoJuego(modoJuego: Char, numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int], vidas: Int): Unit = {
-    if (modoJuego == 'a' || modoJuego == 'A') jugarAutomatico(numFilas, numCol, dificultad, modoJuego, tablero, vidas)
-    else if (modoJuego == 'm' || modoJuego == 'M') jugarManual(numFilas, numCol, dificultad, modoJuego, tablero, vidas)
+  /**
+   * Los datos de las variables son introducidos por el usuario a través del teclado
+   *
+   * @param vidas
+   */
+  def programaTeclado(vidas: Int): Unit = {
+    println("Introduce el numero de Filas del tablero: ")
+    val numFilas: Int = scala.io.StdIn.readInt()
+
+    println("Introduce el numero de columnas del tablero: ")
+    val numCol: Int = scala.io.StdIn.readInt()
+
+    println("Introduce la dificultad del juego: ")
+    val dificultad: Int = scala.io.StdIn.readInt()
+
+    println("Introduce el modo de juego (a o m): ")
+    val modoJuego: Char = scala.io.StdIn.readChar()
+    val size: Int = numFilas * numCol
+
+    val limiteNum: Int = definirDificultad(dificultad)
+
+    val tablero: List[Int] = inicializarTablero(Nil, limiteNum, size)
+    mostrarTablero(tablero, 0, numFilas, numCol)
+    jugar(numFilas, numCol, limiteNum, tablero, modoJuego, vidas)
+  }
+
+  def seleccionModoJuego(modoJuego: Char, numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int]): Int = {
+    if (modoJuego == 'a' || modoJuego == 'A')
+    {
+      val pos: Int = conseguirMejorJugada(tablero, 0, numFilas, numCol, numFilas * numCol, dificultad, 0)
+      println("Posicion optima a borrar " + pos)
+      pos
+    }
+    else if (modoJuego == 'm' || modoJuego == 'M')
+    {
+      println("Introduce la coordenada X de la posicion a borrar : ")
+      val coordX: Int = scala.io.StdIn.readInt()
+
+      println("Introduce la coordenada Y de la posicion a borrar : ")
+      val coordY: Int = scala.io.StdIn.readInt()
+
+      coordX * numCol + coordY
+    }
     else throw new Error("Modo de juego incorrecto")
-  }
-
-  def jugarAutomatico(numFilas: Int, numCol: Int, dificultad: Int, modoJuego: Char, tablero: List[Int], vidas : Int): Unit = {
-
-
-    /*val random = new Random(System.nanoTime())
-    val coordX: Int = random.nextInt(numFilas)
-    val coordY: Int = random.nextInt(numCol)
-    println("Coordenada x = " + coordX + " Coordenada Y = " + coordY)*/
-
-    val pos : Int = conseguirMejorJugada(tablero, 0, numFilas, numCol, numFilas * numCol, dificultad, 0)
-    println("Posicion optima a borrar " + pos)
-    jugar(numFilas, numCol, dificultad, tablero, modoJuego, pos, vidas)
   }
 
   //Funcion que calcula cual seria la mejor posicion a borrar (mayor longitud de camino)
   def conseguirMejorJugada(tablero: List[Int], pos: Int, numFilas: Int, numCol: Int, size : Int, dificultad: Int, mejorPos : Int): Int =
   {
-    val tablero_aux: List[Int] = tablero
     if(pos == size) mejorPos
     else
     {
@@ -100,28 +120,17 @@ object Main {
     else contadorBorrar(encontrarCaminosAux(tablero, pos, 0, numFilas, numCol, size, tablero(pos), pos)) //Si no es un bloque especial calcula camino normal
   }
 
-  def jugarManual(numFilas: Int, numCol: Int, dificultad: Int, modoJuego: Char, tablero: List[Int], vidas: Int): Unit =
-  {
-    println("Introduce la coordenada X de la posicion a borrar : ")
-    val coordX: Int = scala.io.StdIn.readInt()
-
-    println("Introduce la coordenada Y de la posicion a borrar : ")
-    val coordY: Int = scala.io.StdIn.readInt()
-
-    val pos_encontrar: Int = coordX * numCol + coordY
-    jugar(numFilas, numCol, dificultad, tablero, modoJuego, pos_encontrar, vidas)
-  }
-
   //Bucle del juego que se lleva a cabo hasta que se acaban las vidas del jugador
-  def jugar(numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int], modoJuego: Char, pos_encontrar: Int, vidas: Int): Unit = {
+  def jugar(numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int], modoJuego: Char, vidas: Int): Unit= {
     val size: Int = numCol * numFilas
     println("VIDAS " + vidas)
-
     vidas match
     {
       case 0 => println("Has perdido")
+
       case _ =>
       {
+        val pos_encontrar : Int = seleccionModoJuego(modoJuego, numFilas, numCol, dificultad, tablero)
         val color: Int = getElem(pos_encontrar, tablero)
 
         println("Longitud del camino = " + contadorBorrar(encontrarCaminosAux(tablero, pos_encontrar, 0, numFilas, numCol, size, tablero(pos_encontrar), pos_encontrar)))//contarLongitudCamino(tablero, pos_encontrar,0, numFilas, numCol, size, color, pos_encontrar))
@@ -133,8 +142,7 @@ object Main {
         val tablero3: List[Int] = reemplazarPosiciones(0,tablero2, numFilas, numCol, dificultad)
         mostrarTablero(tablero3,0,numFilas, numCol)
 
-        seleccionModoJuego(modoJuego, numFilas, numCol, dificultad, tablero3, vida2)
-
+        jugar(numFilas, numCol, dificultad, tablero3, modoJuego, vida2)
       }
     }
   }
@@ -252,11 +260,13 @@ object Main {
           //println("ARRIBAAA desde ", pos, "a", pos - M)
           insertarElementoPosicion(-1, pos - M, encontrarCaminos(nuevo_tablero, pos - M, pos - M, N, M, size, color, pos_original))
         }
-        else {
+        else
+        {
           encontrarCaminos(nuevo_tablero, pos_original, pos_original, N, M, size - 1, color, pos_original)
         }
       }
-      else {
+      else
+      {
         encontrarCaminos(tablero, pos_original, pos_original, N, M, size - 1, color, pos_original)
       }
     }
@@ -326,14 +336,11 @@ object Main {
    */
   def reemplazarPosiciones(pos:Int, tablero:List[Int], N:Int, M:Int, dificultad:Int): List[Int] = {
     val contador:Int = contadorBorrar(tablero)
-    //println(contadorBorrar(tablero))
     contador match
     {
       case 0 => tablero
       case _ => {
         val nuevo:List[Int] = reemplazarAux(0, tablero, N, M, dificultad, contador, N*M)
-        //println("CONTADOR NUEVO " + contadorBorrar(nuevo))
-        //mostrarTablero(nuevo,0, 4, 4)
         if (contadorBorrar(nuevo) > 0)
         {
           reemplazarPosiciones(0, nuevo, N, M, dificultad)
@@ -358,10 +365,8 @@ object Main {
 
         if (contiene(tablero, pos - M, N * M) && pos - M >= 0 && filaActual > 0 && filaActual <= N && tablero(pos - M) != -1) //Si la posicion de arriba es distinta de -1 se la asignamos a la posicion que nos llega y se la quitamos a la de arriba
         {
-          //println("Entro a insertar posicion en " +  pos)
           val elem: Int = tablero(pos - M)
           val nuevo: List[Int] = insertarElementoPosicion(-1, pos-M, tablero)
-          //println("Elemento pos - M = ", pos - M, nuevo(pos - M))
           insertarElementoPosicion(elem, pos, reemplazarAux(pos + 1, nuevo, N, M, dificultad, contador, size))
         }
         else if (filaActual == 0) //Si estas en la fila 0
@@ -377,7 +382,6 @@ object Main {
       }
       else
       {
-        //println("Pos "+ pos+" = color")
         reemplazarAux(pos + 1, tablero, N, M, dificultad, contador, size)
       }
     }

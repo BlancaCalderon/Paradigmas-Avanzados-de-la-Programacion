@@ -1,5 +1,4 @@
 
-import java.util.function.DoubleToIntFunction
 import scala.util.Random
 
 object Main {

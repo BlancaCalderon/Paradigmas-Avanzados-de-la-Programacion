@@ -36,6 +36,8 @@ class ventanaInicial extends MainFrame {
       ventana2.visible = true
       dispose()
   }
+
+  centerOnScreen()
 }
 
 class ventanaMenu extends MainFrame
@@ -82,6 +84,7 @@ class ventanaMenu extends MainFrame
     }) = Position.Center
     layout(startButton) = Position.South
   }
+  centerOnScreen()
 }
 
 class ventanaTablero(numFilas: Int, numCol: Int, dificultad: Int, modoJuego: Char) extends MainFrame
@@ -204,14 +207,7 @@ class dibujarTablero(tablero: List[Int], numFilas: Int, numCol: Int, dificultad:
       else if(valor == 84) 13
       else throw new Error("ERROR")
     }
-
-  if(modoJuego == 'a')
-  {
-    tableroPanel =  funcionesTablero.jugar(numFilas, numCol, dificultad, tableroPanel, modoJuego, funcionesTablero.conseguirMejorJugada(tableroPanel, 0, numFilas, numCol, numFilas*numCol, dificultad, 0))
-    repaint()
-  }
   def mouseClicked(e: MouseEvent): Unit = {
-    println("Holaaa")
     val point = e.point
     val insets = peer.getInsets()
     val cellWidth = 25 //peer.getWidth() / numCol
@@ -219,9 +215,19 @@ class dibujarTablero(tablero: List[Int], numFilas: Int, numCol: Int, dificultad:
     val row = (point.getY() - insets.top) / cellHeight
     val col = (point.getX() - insets.left) / cellWidth
     if (row >= 0 && col >= 0 && row < numFilas && col < numCol) {
-      println(s"Se ha pulsado en la casilla (${row.toInt}, ${col.toInt})")
-      val pos_encontrar: Int = row.toInt * numCol + col.toInt
-      tableroPanel = funcionesTablero.jugar(numFilas, numCol, dificultad, tableroPanel, modoJuego, pos_encontrar)
+      if (modoJuego == 'a')
+      {
+        val pos_encontrar: Int = funcionesTablero.conseguirMejorJugada(tableroPanel, 0, numFilas, numCol, numFilas * numCol, dificultad, 0)
+        println("Mejor posicon a borarr " + pos_encontrar)
+        tableroPanel = funcionesTablero.jugar(numFilas, numCol, dificultad, tableroPanel, modoJuego, pos_encontrar)
+        this.repaint()
+      }
+      else
+      {
+        println(s"Se ha pulsado en la casilla (${row.toInt}, ${col.toInt})")
+        val pos_encontrar: Int = row.toInt * numCol + col.toInt
+        tableroPanel = funcionesTablero.jugar(numFilas, numCol, dificultad, tableroPanel, modoJuego, pos_encontrar)
+      }
       this.repaint()
     }
   }

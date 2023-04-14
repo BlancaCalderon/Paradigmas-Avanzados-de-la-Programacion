@@ -1,11 +1,10 @@
 package codigo
 
-import java.util.function.DoubleToIntFunction
-import scala.Nil
 import scala.util.Random
 
 object funcionesTablero
 {
+  private var vidas: Int = 5
   /**
    * Recibe los datos introducidos por el usuario por consola
    *
@@ -110,7 +109,7 @@ object funcionesTablero
     else contadorBorrar(encontrarCaminosAux(tablero, pos, 0, numFilas, numCol, size, tablero(pos), pos)) //Si no es un bloque especial calcula camino normal
   }
 
-  var vidas = 5
+
   //Bucle del juego que se lleva a cabo hasta que se acaban las vidas del jugador
   def jugar(numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int], modoJuego: Char,  pos_encontrar : Int): List[Int] = {
     val size: Int = numCol * numFilas
@@ -129,7 +128,6 @@ object funcionesTablero
         //val pos_encontrar : Int = seleccionModoJuego(modoJuego, numFilas, numCol, dificultad, tablero)
         val color: Int = getElem(pos_encontrar, tablero)
 
-        println("Longitud del camino = " + contadorBorrar(encontrarCaminosAux(tablero, pos_encontrar, 0, numFilas, numCol, size, pos_encontrar, pos_encontrar)))//contarLongitudCamino(tablero, pos_encontrar,0, numFilas, numCol, size, color, pos_encontrar))
         val tablero2: List[Int] = borrarSeleccion (tablero, pos_encontrar, size , numFilas, numCol, color, dificultad)
         mostrarTablero(tablero2, 0, numFilas, numCol)
 

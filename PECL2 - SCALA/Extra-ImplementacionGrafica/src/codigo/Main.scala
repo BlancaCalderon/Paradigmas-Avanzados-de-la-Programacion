@@ -126,8 +126,8 @@ class ventanaTablero(numFilas: Int, numCol: Int, dificultad: Int, modoJuego: Cha
 
     // Función para obtener imagen correspondiente al numero del tablero
     def getImagen(n: Int): String = {
-      val fichasNormales = Array("src/codigo/ficha1.PNG", "src/codigo/ficha2.PNG", "src/codigo/ficha3.PNG", "src/codigo/ficha4.PNG", "src/codigo/ficha5.PNG", "src/codigo/ficha6.PNG")
-      fichasNormales(n - 1)
+      val fichasNormales = Array("src/codigo/ficha1.PNG", "src/codigo/ficha2.PNG", "src/codigo/ficha3.PNG", "src/codigo/ficha4.PNG", "src/codigo/ficha5.PNG", "src/codigo/ficha6.PNG", "src/codigo/TNT.PNG")
+      fichasNormales(n)
     }
   }
 
@@ -185,16 +185,26 @@ class dibujarTablero(tablero: List[Int], numFilas: Int, numCol: Int, dificultad:
       j <- 0  until numCol} {
       val coordX = j * 25
       val coordY = i * 25
-      val archivo = new File(getImagen(tableroPanel(i * numCol + j) - 1))
+
+      val archivo = new File(getImagen(determinarFicha(tableroPanel(i * numCol + j))))
       val imagen = ImageIO.read(archivo)
 
       g.drawImage(imagen, coordX, coordY, 25, 25 , null)
     }
   }
     def getImagen(n: Int): String = {
-      val fichasNormales = Array("src/codigo/ficha1.PNG", "src/codigo/ficha2.PNG", "src/codigo/ficha3.PNG", "src/codigo/ficha4.PNG", "src/codigo/ficha5.PNG", "src/codigo/ficha6.PNG")
+      val fichasNormales = Array("src/codigo/ficha1.PNG", "src/codigo/ficha2.PNG", "src/codigo/ficha3.PNG", "src/codigo/ficha4.PNG", "src/codigo/ficha5.PNG", "src/codigo/ficha6.PNG", "src/codigo/RC1.PNG", "src/codigo/RC2.PNG", "src/codigo/RC3.PNG", "src/codigo/RC4.PNG", "src/codigo/RC5.PNG", "src/codigo/RC6.PNG", "src/codigo/bomba.PNG", "src/codigo/TNT.PNG")
       fichasNormales(n)
     }
+
+    def determinarFicha( valor: Int): Int = {
+      if(valor < 7)  valor - 1
+      else if(valor < 14 && valor > 7) valor - 2
+      else if(valor == 66) 12
+      else if(valor == 84) 13
+      else throw new Error("ERROR")
+    }
+
   if(modoJuego == 'a')
   {
     tableroPanel =  funcionesTablero.jugar(numFilas, numCol, dificultad, tableroPanel, modoJuego, funcionesTablero.conseguirMejorJugada(tableroPanel, 0, numFilas, numCol, numFilas*numCol, dificultad, 0))

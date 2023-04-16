@@ -205,6 +205,7 @@ object Main {
     size match {
       case 0 => tablero
       case _ => {
+        //Generamos el color aleatorio
         val random = new Random(System.nanoTime())
         val numeroAleatorio: Int = random.nextInt(dificultad) + 1               //Generamos un numero de forma aleatoria
         numeroAleatorio :: inicializarTablero(tablero, dificultad, size - 1)    //Introducimos el color generado en el tablero
@@ -381,7 +382,7 @@ object Main {
       case 0 => tablero   //Caso base
       case _ =>           //Caso recursivo
       {
-        if (tablero(pos) == -1)   //Posicion eliminada
+        if (tablero(pos) == -1)   //La posicion está eliminada
         {
           val filaActual: Int = pos / M;    //Calculamos la fila de la posicion actual
 
@@ -445,6 +446,7 @@ object Main {
     //Comparamos los valores de los contadores
     if (contCol != contFila)
     {
+      //Insertamos las bombas en caso de que sea posible
       if(contCol == 5) insertarElementoPosicion(66, pos_encontrar, tablero)
       else if (contFila == 5) insertarElementoPosicion(66, pos_encontrar, tablero)
       else tablero
@@ -521,7 +523,7 @@ object Main {
 
       val filaBorrar: Int = pos_encontrar / numCol
       val colBorrar: Int = pos_encontrar % numCol
-      //Si la fila o columna de la posicion actual se corresponde con la de fila y columna a borrar se elimina dicha casailla del tablero
+      //Si la fila o columna de la posicion actual se corresponde con la de fila y columna a borrar se elimina dicha casilla del tablero
       if (filaActual == filaBorrar || colActual == colBorrar) insertarElementoPosicion(-1, pos, realizarAccionBomba(tablero, pos + 1, pos_encontrar, size, numCol))
       else insertarElementoPosicion(tablero(pos), pos, realizarAccionBomba(tablero, pos + 1, pos_encontrar, size, numCol))
     }

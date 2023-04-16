@@ -1,4 +1,3 @@
-
 import scala.util.Random
 
 object Main {
@@ -86,30 +85,30 @@ object Main {
   //Funcion que calcula cual seria la mejor posicion a borrar (mayor longitud de camino)
   def conseguirMejorJugada(tablero: List[Int], pos: Int, numFilas: Int, numCol: Int, size : Int, dificultad: Int, mejorPos : Int): Int =
   {
-    if(pos == size) mejorPos
-    else
+    if(pos == size) mejorPos //Caso base
+    else                      //Caso recursivo
     {
-        if(!contiene(tablero, pos, size)) mejorPos
+      if(!contiene(tablero, pos, size)) mejorPos
+      else
+      {
+        val longActual: Int = calcularLongitud(tablero, pos, numFilas, numCol, size, dificultad)
+        val mejorLong: Int = calcularLongitud(tablero, mejorPos, numFilas, numCol, size, dificultad)
+
+        if (contiene(tablero, pos + 1, size))
+        {
+          if (longActual > mejorLong)
+            conseguirMejorJugada(tablero, pos + 1, numFilas, numCol, size, dificultad, pos)
+          else
+            conseguirMejorJugada(tablero, pos + 1, numFilas, numCol, size, dificultad, mejorPos)
+        }
         else
         {
-            val longActual: Int = calcularLongitud(tablero, pos, numFilas, numCol, size, dificultad)
-            val mejorLong: Int = calcularLongitud(tablero, mejorPos, numFilas, numCol, size, dificultad)
-
-            if (contiene(tablero, pos + 1, size))
-            {
-              if (longActual > mejorLong)
-                conseguirMejorJugada(tablero, pos + 1, numFilas, numCol, size, dificultad, pos)
-              else
-                conseguirMejorJugada(tablero, pos + 1, numFilas, numCol, size, dificultad, mejorPos)
-            }
-            else
-            {
-              if (longActual > mejorLong)  pos
-              else mejorPos
-            }
+          if (longActual > mejorLong)  pos
+          else mejorPos
         }
       }
     }
+  }
 
   //Devuelve longitud de un camino teniendo en cuenta si la posicion corresponde a un bloque especial
   def calcularLongitud(tablero: List[Int], pos: Int, numFilas: Int, numCol: Int, size : Int, dificultad: Int): Int =
@@ -464,16 +463,16 @@ object Main {
     if(pos >= size) insertarElementoPosicion(-1, pos_encontrar, tablero)
     else
     {
-        val filaActual: Int = pos / numCol
-        val colActual : Int = pos % numCol
+      val filaActual: Int = pos / numCol
+      val colActual : Int = pos % numCol
 
-        val filaBorrar: Int = pos_encontrar / numCol
-        val colBorrar: Int = pos_encontrar % numCol
+      val filaBorrar: Int = pos_encontrar / numCol
+      val colBorrar: Int = pos_encontrar % numCol
 
-        if(filaActual == filaBorrar || colActual == colBorrar)  insertarElementoPosicion(-1, pos, realizarAccionBomba(tablero, pos + 1, pos_encontrar, size, numCol))
-        else insertarElementoPosicion(tablero(pos), pos, realizarAccionBomba(tablero, pos + 1, pos_encontrar, size, numCol))
-      }
+      if(filaActual == filaBorrar || colActual == colBorrar)  insertarElementoPosicion(-1, pos, realizarAccionBomba(tablero, pos + 1, pos_encontrar, size, numCol))
+      else insertarElementoPosicion(tablero(pos), pos, realizarAccionBomba(tablero, pos + 1, pos_encontrar, size, numCol))
     }
+  }
 
 
   //Funcion que lleva a cabo la accion del TNT de eliminar todas las casillas en un radio de 4 casillas
@@ -611,3 +610,4 @@ object Main {
   }
 
 }
+

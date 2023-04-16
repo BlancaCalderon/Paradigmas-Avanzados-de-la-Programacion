@@ -447,7 +447,7 @@ object Main {
   def realizarAccionRompecabezas(tablero:List[Int], pos:Int, pos_encontrar:Int, size:Int): List[Int] =
   {
     val colorBorrar: Int = tablero(pos_encontrar) % 7
-    if (pos >= size - 1) insertarElementoPosicion(-1, pos_encontrar, tablero)
+    if (pos >= size) insertarElementoPosicion(-1, pos_encontrar, tablero)
     else {
       if (tablero(pos) == colorBorrar) insertarElementoPosicion(-1, pos, realizarAccionRompecabezas(tablero, pos + 1, pos_encontrar, size))
       else insertarElementoPosicion(tablero(pos), pos, realizarAccionRompecabezas(tablero, pos + 1, pos_encontrar, size))
@@ -465,7 +465,7 @@ object Main {
    */
   def realizarAccionBomba(tablero: List[Int], pos: Int, pos_encontrar: Int, size: Int, numCol: Int): List[Int] =
   {
-    if (pos >= size - 1) insertarElementoPosicion(-1, pos_encontrar, tablero)
+    if (pos >= size) insertarElementoPosicion(-1, pos_encontrar, tablero)
     else {
       val filaActual: Int = pos / numCol
       val colActual: Int = pos % numCol
@@ -490,7 +490,7 @@ object Main {
    */
   def realizarAccionTNT(tablero: List[Int], pos: Int, pos_encontrar: Int, size: Int, numCol: Int, numFilas : Int): List[Int] =
   {
-    if (pos >= size - 1) insertarElementoPosicion(-1, pos_encontrar, tablero)
+    if (pos >= size) insertarElementoPosicion(-1, pos_encontrar, tablero)
     else {
       val filaActual: Int = pos / numCol
       val colActual: Int = pos % numCol

@@ -5,74 +5,10 @@ import scala.util.Random
 object funcionesTablero
 {
   private var vidas: Int = 5
-  /**
-   * Recibe los datos introducidos por el usuario por consola
-   *
-   * @param args
-   * @param modoJuego
-   * @param dificultad
-   * @param numFilas
-   * @param numCol
-   * @param vidas
-   */
-  def programaConsola(args: Int, modoJuego: Int, dificultad: Int, numFilas: Int, numCol: Int, vidas: Int): Unit = {
-    if (args == 5) {
-      println("Modo juego " + modoJuego)
-      val limiteNum: Int = definirDificultad(dificultad)
-      val tablero: List[Int] = inicializarTablero(Nil, limiteNum, numFilas * numCol)
-      mostrarTablero(tablero, 0, numFilas, numCol)
-      jugar(numFilas, numCol, limiteNum, tablero, modoJuego.toChar, vidas)
-    }
-    else if (args < 5) throw new Error("Faltan argumentos en la llamada ")
-    else if (args > 5) throw new Error("Sobran argumentos en la llamdad")
-  }
-
-  /**
-   * Los datos de las variables son introducidos por el usuario a través del teclado
-   *
-   * @param vidas
-   */
-  def programaTeclado(vidas: Int): Unit = {
-    println("Introduce el numero de Filas del tablero: ")
-    val numFilas: Int = scala.io.StdIn.readInt()
-
-    println("Introduce el numero de columnas del tablero: ")
-    val numCol: Int = scala.io.StdIn.readInt()
-
-    println("Introduce la dificultad del juego: ")
-    val dificultad: Int = scala.io.StdIn.readInt()
-
-    println("Introduce el modo de juego (a o m): ")
-    val modoJuego: Char = scala.io.StdIn.readChar()
-    val size: Int = numFilas * numCol
-
-    val limiteNum: Int = definirDificultad(dificultad)
-
-    val tablero: List[Int] = inicializarTablero(Nil, limiteNum, size)
-    mostrarTablero(tablero, 0, numFilas, numCol)
-    jugar(numFilas, numCol, limiteNum, tablero, modoJuego, vidas)
-  }
-
-  def seleccionModoJuego(modoJuego: Char, numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int]): Int = {
-    if (modoJuego == 'a' || modoJuego == 'A')
-    {
-      val pos: Int = conseguirMejorJugada(tablero, 0, numFilas, numCol, numFilas * numCol, dificultad, 0)
-      println("Posicion optima a borrar " + pos)
-      pos
-    }
-    else if (modoJuego == 'm' || modoJuego == 'M')
-    {
-      println("Introduce la coordenada X de la posicion a borrar : ")
-      val coordX: Int = scala.io.StdIn.readInt()
-
-      println("Introduce la coordenada Y de la posicion a borrar : ")
-      val coordY: Int = scala.io.StdIn.readInt()
-
-      coordX * numCol + coordY
-    }
-    else throw new Error("Modo de juego incorrecto")
-  }
-
+   def getVidas(): Int=
+   {
+     vidas
+   }
   //Funcion que calcula cual seria la mejor posicion a borrar (mayor longitud de camino)
   def conseguirMejorJugada(tablero: List[Int], pos: Int, numFilas: Int, numCol: Int, size : Int, dificultad: Int, mejorPos : Int): Int =
   {
@@ -446,7 +382,7 @@ object funcionesTablero
   def realizarAccionRompecabezas(tablero:List[Int], pos:Int, pos_encontrar:Int, size:Int): List[Int] =
   {
     val colorBorrar : Int = tablero(pos_encontrar) % 7
-    if(pos >= size - 1) insertarElementoPosicion(-1, pos_encontrar, tablero)
+    if(pos >= size) insertarElementoPosicion(-1, pos_encontrar, tablero)
     else
     {
       if(tablero(pos) == colorBorrar) insertarElementoPosicion(-1, pos, realizarAccionRompecabezas(tablero, pos + 1, pos_encontrar, size))
@@ -458,7 +394,7 @@ object funcionesTablero
   //Funcion que lleva a cabo la accion de la bomba de eliminar todas las casillas de su misma fila y columna
   def realizarAccionBomba(tablero: List[Int], pos: Int, pos_encontrar: Int, size: Int, numCol: Int): List[Int] =
   {
-    if(pos >= size - 1) insertarElementoPosicion(-1, pos_encontrar, tablero)
+    if(pos >= size) insertarElementoPosicion(-1, pos_encontrar, tablero)
     else
     {
       val filaActual: Int = pos / numCol
@@ -476,7 +412,7 @@ object funcionesTablero
   //Funcion que lleva a cabo la accion del TNT de eliminar todas las casillas en un radio de 4 casillas
   def realizarAccionTNT(tablero: List[Int], pos: Int, pos_encontrar: Int, size: Int, numCol: Int, numFilas : Int): List[Int] =
   {
-    if(pos >= size - 1) insertarElementoPosicion(-1, pos_encontrar, tablero)
+    if(pos >= size) insertarElementoPosicion(-1, pos_encontrar, tablero)
     else
     {
       val filaActual: Int = pos / numCol

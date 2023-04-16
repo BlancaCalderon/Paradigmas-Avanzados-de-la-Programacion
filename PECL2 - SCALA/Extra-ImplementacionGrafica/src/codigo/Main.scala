@@ -8,7 +8,7 @@ import javax.swing.ImageIcon
 import scala.collection.mutable.ListBuffer
 import scala.runtime.BoxesRunTime.{add, takeNot}
 import scala.swing.BorderPanel.Position
-import scala.swing.MenuBar.NoMenuBar.contents
+import scala.swing.MenuBar.NoMenuBar.{contents, font}
 import scala.swing._
 import scala.swing.event.{ButtonClicked, MouseClicked, MouseEvent}
 import scala.util.Random
@@ -19,14 +19,23 @@ class ventanaInicial extends MainFrame {
   title = "Cundy Crosh Saga"
   preferredSize = new Dimension(320, 240)
 
+  val fondo = ImageIO.read(new File("src/codigo/fondo.jpg"))
+
   val button = new Button("Seleccionar opciones")
   {
+    background = java.awt.Color.yellow
     preferredSize = new Dimension(50, 20)
   }
   contents = new BorderPanel
    {
-    layout(new Label("Cundy Crosh Saga!")) = Position.North
+    layout(new Label("Cundy Crosh Saga!") {foreground = java.awt.Color.RED}) = Position.North
     layout(button) = Position.South
+
+     override def paintComponent(g: Graphics2D) = {
+       super.paintComponent(g)
+       g.drawImage(fondo, 0, 0, null)
+     }
+     preferredSize = new Dimension(320, 240)
     }
 
   button.reactions +=
@@ -45,6 +54,7 @@ class ventanaMenu extends MainFrame
   title = "Selecciona opciones de juego"
   preferredSize = new Dimension(320, 240)
 
+  val fondo = ImageIO.read(new File("src/codigo/fondo.jpg"))
 
   val numFilasTexto= new TextField {
     columns = 2
@@ -56,14 +66,13 @@ class ventanaMenu extends MainFrame
   val modoJuegoCuadro = new ComboBox(List("Automatico", "Manual"))
 
   val startButton = new Button("Start game") {
+    background = java.awt.Color.yellow
     reactions += {
       case ButtonClicked(_) =>
         val numFilas = numFilasTexto.text.toInt
         val numCol = numColTexto.text.toInt
         val dificultad = dificultadCuadro.selection.item
         val modoJuego = modoJuegoCuadro.selection.item
-
-        //Main.comenzarJuego(numFilas, numCol, dificultad, modoJuego)
 
         val ventana3 = new ventanaTablero(numFilas, numCol, Main.conversionDificultad(dificultad), Main.conversionModoJuego(modoJuego))
         ventana3.visible = true
@@ -73,15 +82,23 @@ class ventanaMenu extends MainFrame
 
   contents = new BorderPanel {
     layout(new GridPanel(4, 2) {
-      contents += new Label("Numero de filas del tablero:")
+      contents += new Label ("Numero de filas:") {foreground = java.awt.Color.RED}
       contents += numFilasTexto
-      contents += new Label("Numero de columnas del tablero:")
+      contents += new Label("Numero de columnas:") {foreground = java.awt.Color.RED}
       contents += numColTexto
-      contents += new Label("Dificultad:")
+      contents += new Label("Dificultad:") {foreground = java.awt.Color.RED}
       contents += dificultadCuadro
-      contents += new Label("Modo de juego:")
+      contents += new Label("Modo de juego:") {foreground = java.awt.Color.RED}
       contents += modoJuegoCuadro
+
+      override def paintComponent(g: Graphics2D) = {
+        super.paintComponent(g)
+        g.drawImage(fondo, 0, 0, null)
+      }
+
+      preferredSize = new Dimension(320, 240)
     }) = Position.Center
+
     layout(startButton) = Position.South
   }
   centerOnScreen()
@@ -90,12 +107,13 @@ class ventanaMenu extends MainFrame
 class ventanaTablero(numFilas: Int, numCol: Int, dificultad: Int, modoJuego: Char) extends MainFrame
 {
   title = "TABLERO DEL JUEGO"
-  preferredSize = new Dimension(numCol * 50, numFilas * 50)
+  preferredSize = new Dimension((numCol + 1) * 24, (numFilas + 5) * 19)
 
   val tablero: List[Int] = funcionesTablero.inicializarTablero(Nil, dificultad, numFilas * numCol)
 
   val panelTablero = new dibujarTablero(tablero, numFilas, numCol, dificultad, modoJuego)
   contents = new BoxPanel(Orientation.Vertical){
+    //contents += new Label("Vidas: " + funcionesTablero.getVidas()) {foreground = java.awt.Color.RED; Position.North}
     contents += panelTablero
   }
   panelTablero.visible = true
@@ -105,82 +123,16 @@ class ventanaTablero(numFilas: Int, numCol: Int, dificultad: Int, modoJuego: Cha
 
 }
 
-/*class ventanaTablero(numFilas: Int, numCol: Int, dificultad: Int, modoJuego: Char) extends MainFrame {
-  title = "Tablero"
-
-  // Crea el tablero
-  val tablero: List[Int] = funcionesTablero.inicializarTablero(Nil, dificultad, numFilas * numCol)
-
-
-  funcionesTablero.mostrarTablero(tablero.toList, 0, numFilas, numCol)
-
-  // Inicializar la lista mutable de labels
-  val gridPanel = new GridPanel(numFilas, numCol) {
-    preferredSize = new Dimension(400, 400)
-    for (i <- 0 until numFilas * numCol) {
-      // Crea un Label con una imagen de fondo aleatoria
-      val label = new Label {
-        preferredSize = new Dimension(25, 25)
-        icon = new ImageIcon(getImagen(tablero(i)))
-      }
-      // Agrega el Label al GridPanel
-      contents += label
-    }
-
-    // Función para obtener imagen correspondiente al numero del tablero
-    def getImagen(n: Int): String = {
-      val fichasNormales = Array("src/codigo/ficha1.PNG", "src/codigo/ficha2.PNG", "src/codigo/ficha3.PNG", "src/codigo/ficha4.PNG", "src/codigo/ficha5.PNG", "src/codigo/ficha6.PNG", "src/codigo/TNT.PNG")
-      fichasNormales(n)
-    }
-  }
-
-  // Agrega el GridPanel a la ventana
-  contents = new BorderPanel {
-    layout(gridPanel) = Position.Center
-  }
-
-  // Método para manejar el evento de ratón
-  def mouseEventHandler(e: MouseEvent): Unit = {
-    println("Holaaa")
-    val point = e.point
-    val peer = gridPanel.peer
-    val insets = peer.getInsets()
-    val cellWidth = peer.getWidth() / numCol
-    val cellHeight = peer.getHeight() / numFilas
-    val row = (point.getY() - insets.top) / cellHeight
-    val col = (point.getX() - insets.left) / cellWidth
-
-    if (row >= 0 && col >= 0 && row < numFilas && col < numCol)
-    {
-      println(s"Se ha pulsado en la casilla (${row.toInt}, ${col.toInt})")
-      val pos_encontrar: Int = row.toInt * numCol + col.toInt
-      funcionesTablero.jugar(numFilas, numCol, dificultad, tablero, modoJuego, pos_encontrar)
-      val ventana3 = new ventanaTablero(numFilas, numCol, dificultad,modoJuego)
-      ventana3.visible = true
-      dispose()
-    }
-  }
-    // Agrega el comportamiento de ratón al GridPanel
-    listenTo(gridPanel.mouse.clicks)
-    reactions += {
-      case e: MouseClicked => mouseEventHandler(e)
-    }
-
-    // Mostrar la ventana
-    centerOnScreen()
-    visible = true
-  }*/
-
 class dibujarTablero(tablero: List[Int], numFilas: Int, numCol: Int, dificultad: Int, modoJuego: Char) extends Component
 {
-  val (ancho, alto) = (numCol * 50, numFilas * 50)
+  val (ancho, alto) = ((numCol + 1) * 25, (numFilas + 1) * 25)
 
   var tableroPanel: List[Int] = tablero
-
-  funcionesTablero.mostrarTablero(tablero, 0, numFilas, numCol)
+  
   funcionesTablero.mostrarTablero(tableroPanel, 0, numFilas, numCol)
   override def paintComponent(g: Graphics2D): Unit =
   {
+    new Label("Vidas: " + funcionesTablero.getVidas()) {foreground = java.awt.Color.RED; Position.North}
     super.paintComponent(g)
 
     preferredSize = new Dimension(ancho, alto)
@@ -240,10 +192,10 @@ class dibujarTablero(tablero: List[Int], numFilas: Int, numCol: Int, dificultad:
 
   preferredSize = new Dimension(ancho, alto)
 
-  val screenSize = Toolkit.getDefaultToolkit().getScreenSize()
+  /*val screenSize = Toolkit.getDefaultToolkit().getScreenSize()
   val x = (screenSize.getWidth() - preferredSize.getWidth()) / 2
   val y = (screenSize.getHeight() - preferredSize.getHeight()) / 2
-  new Point(x.toInt, y.toInt)
+  new Point(x.toInt, y.toInt)*/
 
 
 }
@@ -255,16 +207,6 @@ object Main
     ventana1.visible = true
     println("Fin")
 
-  }
-
-  def comenzarJuego( numFilas: Int, numCol: Int, dificultadInterfaz :String, modoJuegoInterfaz: String):Unit =
-  {
-    val dificultad: Int = conversionDificultad(dificultadInterfaz)
-    val modoJuego: Char = conversionModoJuego(modoJuegoInterfaz)
-
-    val size: Int = numFilas * numCol
-    val tablero : List[Int] = funcionesTablero.inicializarTablero(Nil, dificultad, size)
-    funcionesTablero.jugar(numFilas, numCol, dificultad, tablero,  modoJuego, size)
   }
 
   def conversionDificultad(dificultadInterfaz :String):Int =

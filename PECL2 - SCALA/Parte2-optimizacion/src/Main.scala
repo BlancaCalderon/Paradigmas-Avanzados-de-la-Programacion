@@ -449,7 +449,7 @@ object Main {
   def realizarAccionRompecabezas(tablero:List[Int], pos:Int, pos_encontrar:Int, size:Int): List[Int] =
   {
     val colorBorrar : Int = tablero(pos_encontrar) % 7
-    if(pos >= size - 1) insertarElementoPosicion(-1, pos_encontrar, tablero)
+    if(pos >= size) insertarElementoPosicion(-1, pos_encontrar, tablero)
     else
     {
       if(tablero(pos) == colorBorrar) insertarElementoPosicion(-1, pos, realizarAccionRompecabezas(tablero, pos + 1, pos_encontrar, size))
@@ -461,7 +461,7 @@ object Main {
   //Funcion que lleva a cabo la accion de la bomba de eliminar todas las casillas de su misma fila y columna
   def realizarAccionBomba(tablero: List[Int], pos: Int, pos_encontrar: Int, size: Int, numCol: Int): List[Int] =
   {
-    if(pos >= size - 1) insertarElementoPosicion(-1, pos_encontrar, tablero)
+    if(pos >= size) insertarElementoPosicion(-1, pos_encontrar, tablero)
     else
     {
         val filaActual: Int = pos / numCol
@@ -479,7 +479,7 @@ object Main {
   //Funcion que lleva a cabo la accion del TNT de eliminar todas las casillas en un radio de 4 casillas
   def realizarAccionTNT(tablero: List[Int], pos: Int, pos_encontrar: Int, size: Int, numCol: Int, numFilas : Int): List[Int] =
   {
-    if(pos >= size - 1) insertarElementoPosicion(-1, pos_encontrar, tablero)
+    if(pos >= size) insertarElementoPosicion(-1, pos_encontrar, tablero)
     else
     {
       val filaActual: Int = pos / numCol

@@ -19,7 +19,7 @@ class ventanaInicial extends MainFrame {
   title = "Cundy Crosh Saga"
   preferredSize = new Dimension(320, 240)
 
-  val fondo = ImageIO.read(new File("src/codigo/fondo.jpg"))
+  val fondo = ImageIO.read(new File("src/recursos/fondo.jpg"))
 
   val button = new Button("Seleccionar opciones")
   {
@@ -54,7 +54,7 @@ class ventanaMenu extends MainFrame
   title = "Selecciona opciones de juego"
   preferredSize = new Dimension(320, 240)
 
-  val fondo = ImageIO.read(new File("src/codigo/fondo.jpg"))
+  val fondo = ImageIO.read(new File("src/recursos/fondo.jpg"))
 
   val numFilasTexto= new TextField {
     columns = 2
@@ -148,7 +148,7 @@ class dibujarTablero(tablero: List[Int], numFilas: Int, numCol: Int, dificultad:
     }
   }
     def getImagen(n: Int): String = {
-      val fichasNormales = Array("src/codigo/ficha1.PNG", "src/codigo/ficha2.PNG", "src/codigo/ficha3.PNG", "src/codigo/ficha4.PNG", "src/codigo/ficha5.PNG", "src/codigo/ficha6.PNG", "src/codigo/RC1.PNG", "src/codigo/RC2.PNG", "src/codigo/RC3.PNG", "src/codigo/RC4.PNG", "src/codigo/RC5.PNG", "src/codigo/RC6.PNG", "src/codigo/bomba.PNG", "src/codigo/TNT.PNG")
+      val fichasNormales = Array("src/recursos/ficha1.PNG", "src/recursos/ficha2.PNG", "src/recursos/ficha3.PNG", "src/recursos/ficha4.PNG", "src/recursos/ficha5.PNG", "src/recursos/ficha6.PNG", "src/recursos/RC1.PNG", "src/recursos/RC2.PNG", "src/recursos/RC3.PNG", "src/recursos/RC4.PNG", "src/recursos/RC5.PNG", "src/recursos/RC6.PNG", "src/recursos/bomba.PNG", "src/recursos/TNT.PNG")
       fichasNormales(n)
     }
 

@@ -568,17 +568,23 @@ object Main {
     listaFila match {
       case Nil => 0
       case head::Nil => {
-        if (head == -1) 1
+        if (head == -1) 1   //Si la cabeza es -1 esa posicion ha sido borrada, devolvemos un 1 para la suma de las posiciones borradas
         else 0
       }
       case head::tail => {
-        if (head == -1) 1 + contarPosicionesBorradas(tail)
-        else  0 + contarPosicionesBorradas(tail)
+        if (head == -1) 1 + contarPosicionesBorradas(tail)    //Si la cabeza es -1 esa posicion ha sido borrada
+        else  0 + contarPosicionesBorradas(tail)              //En cualquier otro caso la posicion no ha sido eliminada
       }
     }
   }
 
-  //Comprueba si cierta posicion esta dentro del rango del tablero
+  /**
+   * Comprueba si la posicion esta dentro del rango del tablero
+   * @param tablero
+   * @param pos
+   * @param size
+   * @return true o false
+   */
   def contiene(tablero: List[Int], pos: Int, size: Int): Boolean =
   {
     if (pos < 0) false
@@ -586,19 +592,31 @@ object Main {
     else true
   }
 
-  //Obtiene elemento que se encuentra en la posicion index de la matriz
+
+  /**
+   * Obtiene elemento que se encuentra en la posicion index
+   * @param index
+   * @param matriz
+   * @return elemento que se encuentra en la posicion index
+   */
   def getElem(index: Int, matriz: List[Int]): Int = matriz match {
     case Nil => -1
     case head :: Nil =>
       head
     case head :: tail =>
       if (index < 0) -1
-      else if (index == 0) head
+      else if (index == 0) head       //Si el index es 0 estamos en la posición buscada
       else getElem(index - 1, tail)
   }
 
 
-  //Inserta un color en la posicion deseada
+  /**
+   * Inserta un elemento en la pos dada una lista
+   * @param e
+   * @param pos
+   * @param lista
+   * @return lista con el elemento insertado en pos
+   */
   def insertarElementoPosicion(e: Int, pos: Int, lista: List[Int]): List[Int] = {
     lista match
     {
@@ -611,37 +629,59 @@ object Main {
     }
   }
 
-  //Obtiene los valores de la columna index
+  /**
+   * Obtiene los valores de la columna numero index
+   * @param index
+   * @param matriz
+   * @param col
+   * @param numCol
+   * @return lista con los elementos de la columna
+   */
   def getColumna(index: Int, matriz: List[Int], col:Int, numCol:Int): List[Int] = {
     matriz match {
       case Nil => Nil
       case head::Nil =>
       {
-        if (index % numCol == col)  head::Nil
+        if (index % numCol == col)  head::Nil   //El elemento forma parte de la columna buscada
         else Nil
       }
       case head :: tail =>
       {
-        if (index % numCol == col) head :: getColumna(index + 1, tail, col, numCol)
+        if (index % numCol == col) head :: getColumna(index + 1, tail, col, numCol) //El elemento forma parte de la columna buscada
         else getColumna(index + 1, tail, col, numCol)
       }
     }
   }
 
-  //Funcion que calcula la longitud de un array
+  /**
+   * Funcion que calcula la longitud de un array
+   * @param array
+   * @return longitud
+   */
   def obtenerLongitud(array: Array[String]): Int =
   {
     if (array.isEmpty) 0
     else 1 + obtenerLongitud(array.tail)
   }
 
-  //Obtiene los valores de la fila, utilizado para encontrar bomba
+  /**
+   * Obtiene los valores de la fila, utilizado para encontrar bomba
+   * @param fila
+   * @param matriz
+   * @param N
+   * @return lista con los elementos de la fila
+   */
   def getFila(fila: Int, matriz: List[Int], N:Int): List[Int] = fila match {
     case 0 => toma(N, matriz) //Si nos encontramos en la primera fila
     case _ => getFila((fila - 1), dejar(matriz.length - N, matriz), N)
   }
 
-  //Saca los n primeros elementos de la lista
+  /**
+   * Saca los n primeros elementos de la lista
+   * @param n
+   * @param l
+   * @return lista con los N primeros elementos de l
+   */
   def toma(n: Int, l: List[Int]): List[Int] = l match {
     case Nil => Nil
     case head :: Nil => head::Nil
@@ -650,7 +690,12 @@ object Main {
       else head :: toma(n - 1, tail)
   }
 
-  //Saca los n ultimos elementos de la lista
+  /**
+   * Saca los n ultimos elementos de la lista
+   * @param n
+   * @param l
+   * @return
+   */
   def dejar(n: Int, l: List[Int]): List[Int] = l match {
     case Nil => Nil
     case head :: Nil => head :: Nil

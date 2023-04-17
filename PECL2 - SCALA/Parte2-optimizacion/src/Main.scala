@@ -226,7 +226,6 @@ object Main {
 
   /**
    * Define la dificultad ya que el usuario introduce un 1 o un 2
-   *
    * @param dificultad
    * @return dificultad (puede ser o 4 o 6)
    */
@@ -236,7 +235,7 @@ object Main {
   }
 
   /**
-   *
+   * Generamos valores aleatorios para el tablero
    * @param tablero
    * @param dificultad
    * @param size
@@ -292,7 +291,7 @@ object Main {
     if (pos + 1 == size) tablero //Si se sale del rango del tablero estamos en el caso base, ya que no nos quedan más casillas por explorar
     else {
       val nuevo_tablero: List[Int] = encontrarCaminos(tablero, pos_encontrar, pos, N, M, size, color, pos_original)
-      if (nuevo_tablero(pos) == -1) //Si la siguiente posición a la que se pasa forma parte del camino comprobamos si podemos seguir avanzando
+      if (nuevo_tablero(pos) == -1) //Si la posición forma parte del camino comprobamos si podemos seguir avanzando
       {
         encontrarCaminosAux(encontrarCaminos(nuevo_tablero, pos, pos, N, M, size, color, pos_original), pos_encontrar, pos + 1, N, M, size, color, pos_original)
       }
@@ -388,7 +387,7 @@ object Main {
     {
       case 0 => tablero //Caso base
       case _ => {       //Caso recursivo
-        //Llamamos a la funcion axualiar
+        //Llamamos a la funcion auxiliar
         val nuevo:List[Int] = reemplazarAux(0, tablero, N, M, dificultad, contador, N*M)
         //Si aún no se han reemplazado todas sus posiciones devovelvera un numero mayor que 0
         if (contarPosicionesBorradas(nuevo) > 0)
@@ -459,7 +458,7 @@ object Main {
 
 
   /**
-   *
+   * Comprueba si se puede generar una bomba en el tablero
    * @param tablero
    * @param pos_encontrar
    * @param N
@@ -566,6 +565,7 @@ object Main {
       val filaActual: Int = pos / numCol
       val colActual : Int = pos % numCol
 
+      //Numero de fila y columna a eliminar
       val filaBorrar: Int = pos_encontrar / numCol
       val colBorrar: Int = pos_encontrar % numCol
 
@@ -596,13 +596,13 @@ object Main {
       val filaActual: Int = pos / numCol
       val colActual: Int = pos % numCol
 
-      //Calculamos los limites dentro del radio 4 de casillas que va a explotar la bomba
+      //Calculamos los limites dentro del radio 4 de casillas que va a explotar el TNT
       val limiteDerecho: Int = if((colActual + 4) < numCol) colActual + 4 else numCol - 1
       val limiteIzquierdo: Int = if((colActual - 4) < 0) 0 else filaActual - 4
       val limiteArriba: Int = if((filaActual - 4) < 0) 0 else colActual - 4
       val limiteAbajo: Int = if((filaActual + 4) < numFilas) filaActual + 4 else numFilas - 1
 
-      //Si la posicion que nos llega se encuentra dentro del radio, se elimina
+      //Si la posicion se encuentra dentro del radio, se elimina
       if (colActual < limiteDerecho && colActual > limiteIzquierdo && filaActual < limiteAbajo && filaActual > limiteArriba)
         insertarElementoPosicion(-1, pos, realizarAccionTNT(tablero, pos + 1, pos_encontrar, size, numCol, numFilas))
       else //La posicion esta FUERA del radio

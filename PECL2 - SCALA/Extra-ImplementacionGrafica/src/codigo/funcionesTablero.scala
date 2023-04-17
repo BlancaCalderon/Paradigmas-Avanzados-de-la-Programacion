@@ -9,7 +9,18 @@ object funcionesTablero
    {
      vidas
    }
-  //Funcion que calcula cual seria la mejor posicion a borrar (mayor longitud de camino)
+
+  /**
+   * Funcion que calcula cual seria la mejor posicion a borrar (mayor longitud de camino)
+   * @param tablero
+   * @param pos
+   * @param numFilas
+   * @param numCol
+   * @param size
+   * @param dificultad
+   * @param mejorPos
+   * @return mejorPos encontrada
+   */
   def conseguirMejorJugada(tablero: List[Int], pos: Int, numFilas: Int, numCol: Int, size : Int, dificultad: Int, mejorPos : Int): Int =
   {
     if(pos == size) mejorPos
@@ -37,16 +48,34 @@ object funcionesTablero
     }
   }
 
-  //Devuelve longitud de un camino teniendo en cuenta si la posicion corresponde a un bloque especial
+
+  /**
+   * Devuelve longitud de un camino teniendo en cuenta si la posicion corresponde a un bloque especial
+   * @param tablero
+   * @param pos
+   * @param numFilas
+   * @param numCol
+   * @param size
+   * @param dificultad
+   * @return longitud de un camino desde la pos
+   */
   def calcularLongitud(tablero: List[Int], pos: Int, numFilas: Int, numCol: Int, size : Int, dificultad: Int): Int =
   {
     //Si posicion tiene un bloque especial
-    if(tablero(pos) > 6)  contadorBorrar(borrarSeleccion(tablero, pos, size, tablero(pos), numFilas, numCol, dificultad)) //Calcula casillas que se borraran
-    else contadorBorrar(encontrarCaminosAux(tablero, pos, 0, numFilas, numCol, size, tablero(pos), pos)) //Si no es un bloque especial calcula camino normal
+    if(tablero(pos) > 6)  contarPosicionesBorradas(determinarAccion(tablero, pos, size, tablero(pos), numFilas, numCol, dificultad)) //Calcula casillas que se borraran
+    else contarPosicionesBorradas(encontrarCaminosAux(tablero, pos, 0, numFilas, numCol, size, tablero(pos), pos)) //Si no es un bloque especial calcula camino normal
   }
 
-
-  //Bucle del juego que se lleva a cabo hasta que se acaban las vidas del jugador
+  /**
+   * Bucle del juego que se lleva a cabo hasta que se acaban las vidas del jugador
+   * @param numFilas
+   * @param numCol
+   * @param dificultad
+   * @param tablero
+   * @param modoJuego
+   * @param pos_encontrar
+   * @return
+   */
   def jugar(numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int], modoJuego: Char,  pos_encontrar : Int): List[Int] = {
     val size: Int = numCol * numFilas
     println("VIDAS " + vidas)
@@ -61,57 +90,86 @@ object funcionesTablero
 
       case _ =>
       {
+        //Obtiene el valor de la casilla con la que vamos a realizar la jugada
         val color: Int = getElem(pos_encontrar, tablero)
 
-        val tablero2: List[Int] = borrarSeleccion (tablero, pos_encontrar, size , numFilas, numCol, color, dificultad)
+        //Funcion que determina la accion que se va a realizar en funcion del valor que tenga la casilla (Bomba, Rompecabezas, TNT o encontrar camino)
+        val tablero2: List[Int] = determinarAccion (tablero, pos_encontrar, size , numFilas, numCol, color, dificultad)
         mostrarTablero(tablero2, 0, numFilas, numCol)
 
-        vidas = restarVidas(tablero2, vidas, pos_encontrar);
+        //Una vez que se ha realizado la accion, realizamos una comprobacion mediante restarVidas, para ver si hay que restar vidas al usuario
+        vidas = restarVidas(tablero2, vidas, pos_encontrar); //Si tablero2 contiene casillas con el valor -1 significa que desde dicha posicion se han borrado elementos
 
+        //Reemplazamos las posiciones del tablero eliminadas generando nuevos colores
         val tablero3: List[Int] = reemplazarPosiciones(0,tablero2, numFilas, numCol, dificultad)
         mostrarTablero(tablero3,0,numFilas, numCol)
 
-        tablero3
+        tablero3    //Devolvemos el tablero, en este caso no hay llamada recursiva, ya que al estar ligado a la interfaz se seguirá llamando
       }
     }
   }
 
-  //Funcion que determina si posicion seleccionada es un bloque especial o se busca camino de forma normal
-  def borrarSeleccion(tablero : List[Int], pos_encontrar: Int, size : Int, numFilas: Int, numCol: Int, color: Int, dificultad: Int): List[Int] =
+  /**
+   * Funcion que determina si posicion seleccionada es un bloque especial o se busca camino de forma normal
+   * @param tablero
+   * @param pos_encontrar
+   * @param size
+   * @param numFilas
+   * @param numCol
+   * @param color
+   * @param dificultad
+   * @return
+   */
+  def determinarAccion(tablero : List[Int], pos_encontrar: Int, size : Int, numFilas: Int, numCol: Int, color: Int, dificultad: Int): List[Int] =
   {
-    if(tablero(pos_encontrar) == 66)  insertarElementoPosicion(-1, pos_encontrar, realizarAccionBomba(tablero, 0, pos_encontrar, size, numCol))
-    else if(tablero(pos_encontrar) == 84) insertarElementoPosicion(-1, pos_encontrar, realizarAccionTNT(tablero, 0, pos_encontrar, size, numCol, numFilas))
-    else if(tablero(pos_encontrar) > 7 && tablero(pos_encontrar) < 14)  insertarElementoPosicion(-1, pos_encontrar, realizarAccionRompecabezas(tablero, 0, pos_encontrar, size))
-    else
+    //Comprobamos si se corresponde con un bloque especial (Bomba, TNT o RC)
+    if (tablero(pos_encontrar) == 66) insertarElementoPosicion(-1, pos_encontrar, realizarAccionBomba(tablero, 0, pos_encontrar, size, numCol))
+    else if (tablero(pos_encontrar) == 84) insertarElementoPosicion(-1, pos_encontrar, realizarAccionTNT(tablero, 0, pos_encontrar, size, numCol, numFilas))
+    else if (tablero(pos_encontrar) > 7 && tablero(pos_encontrar) < 14) insertarElementoPosicion(-1, pos_encontrar, realizarAccionRompecabezas(tablero, 0, pos_encontrar, size))
+    else //No es un bloque especial, por tanto buscamos todas las casillas adyacentes a la introducida para eliminarlas
     {
+      //Encuentra todas las casillas adyacentes a la posición del tablero introducida por el usuario
       val tablero2: List[Int] = encontrarCaminosAux(tablero, pos_encontrar, 0, numFilas, numCol, size, color, pos_encontrar)
+      //Una vez que hemos eliminado todas las posiciones comprobamos si se puede generar una bomba, un rompecabezas o un TNT
       val tablero3: List[Int] = encontrarBomba(tablero2, pos_encontrar, numFilas, numCol)
       val tablero4: List[Int] = encontrarRompecabezasTNT(tablero3, pos_encontrar, numFilas, numCol, dificultad)
-      tablero4
+      tablero4 //Se devuelve el tablero4 que se corresponde con el final tras haber aplicado las distintas posibilidades de acciones sobre el tablero
     }
   }
 
   //Funcion que determina si se le tiene que borrar una vida al jugador
+
+  /**
+   *  Funcion que determina si se le tiene que borrar una vida al jugador
+   * Comprueba si existen posiciones en tablero eliminadas, cuyo valor sera -1
+   * @param tablero
+   * @param vidas
+   * @param pos_encontrar
+   * @return
+   */
   def restarVidas(tablero: List[Int], vidas: Int, pos_encontrar:Int): Int =
   {
-    if (contadorBorrar(tablero) == 1 && tablero(pos_encontrar) < 7 )
+    //Llama a la función contarPosicionesBorradas que recorrera el tablero devolviendo el numero de posiciones borradas
+    //En caso de que unicamente se haya borrado una posicion, significa que se corresponde con la casilla introducida por el
+    //usuario, y que por tanto NO se ha borrado ninguna posicion
+    if (contarPosicionesBorradas(tablero) == 1 && tablero(pos_encontrar) < 7 )
       vidas - 1
-
-    else vidas
+    else vidas  //Se han borrado casillas, mantenemos la vida del usuario
   }
 
-  def definirDificultad(dificultad: Int): Int = {
-    if (dificultad == 1) 4
-    else 6
-  }
-
+  /**
+   * Generamos valores aleatorios para el tablero
+   * @param tablero
+   * @param dificultad
+   * @param size
+   * @return tablero inicializado en rango entre 1 y la dificultad enviada
+   */
   def inicializarTablero(tablero: List[Int], dificultad: Int, size: Int): List[Int] = {
     size match
     {
       case 0 => tablero
 
       case _ => {
-        //val secureRandom = new Random(System.nanoTime())
         val random = new Random(System.nanoTime())
         val numeroAleatorio: Int = random.nextInt(dificultad) + 1
         numeroAleatorio :: inicializarTablero(tablero, dificultad, size - 1)
@@ -119,6 +177,13 @@ object funcionesTablero
     }
   }
 
+  /**
+   * Muestra el tablero por pantalla
+   * @param l
+   * @param fila
+   * @param N
+   * @param M
+   */
   def mostrarTablero(l: List[Int], fila: Int, N:Int, M:Int): Unit = {
     if (l == Nil)
     {
@@ -136,11 +201,25 @@ object funcionesTablero
     }
   }
 
+  /**
+   * Se encarga de encontrar todos los posibles caminos desde la posición del tablero que se corresponde con las coordenadas
+   * introducidas por el usuario. Busca todas sus posiciones adyacentes del mismo color y establece su valor a -1
+   * @param tablero
+   * @param pos_encontrar
+   * @param pos se incrementa en cada llamada recursiva
+   * @param N
+   * @param M
+   * @param size
+   * @param color
+   * @param pos_original
+   * @return tablero con todos los posibles caminos desde la posicion puestos a -1
+   */
   def encontrarCaminosAux(tablero: List[Int], pos_encontrar: Int, pos: Int, N: Int, M: Int, size: Int, color: Int, pos_original: Int): List[Int] = {
+    //Si se sale del rango del tablero estamos en el caso base, ya que no nos quedan más casillas por explorar
     if (pos + 1 == size) tablero
     else {
       val nuevo_tablero: List[Int] = encontrarCaminos(tablero, pos_encontrar, pos, N, M, size, color, pos_original)
-      if (nuevo_tablero(pos) == -1)
+      if (nuevo_tablero(pos) == -1) //Si la  posición forma parte del camino comprobamos si podemos seguir avanzando
       {
         encontrarCaminosAux(encontrarCaminos(nuevo_tablero, pos, pos, N, M, size, color, pos_original), pos_encontrar, pos + 1, N, M, size, color, pos_original)
       }
@@ -151,108 +230,73 @@ object funcionesTablero
     }
   }
 
-  //Función que encuentra todos los caminos desde una posicion hasta todas las casillas adyacentes del mismo color
+  /**
+   * Función que encuentra todos los caminos desde una posicion hasta todas las casillas adyacentes del mismo color
+   * @param tablero
+   * @param pos_encontrar
+   * @param pos
+   * @param N            (filas)
+   * @param M            (columnas)
+   * @param size         (filas*columnas)
+   * @param color
+   * @param pos_original (cuando ya no podemos movernos mas desde un camino volvemos a la posicion original para encontrar todos los posibles caminos desde ella)
+   * @return tablero con posiciones adyacentes puestas a -1
+   */
   def encontrarCaminos(tablero: List[Int], pos_encontrar: Int, pos: Int, N: Int, M: Int, size: Int, color: Int, pos_original: Int): List[Int] = {
     if (pos < 0 || pos >= size || !contiene(tablero, pos, size))
     {
       tablero
     }
     else {
+      //Dada la posicion actual en la que nos encontramos del tablero calculamos su fila siguiente y anterior, y su columna siguiente y anterior
+      //Se usara para controlar los rangos del tablero y no salirnos de sus dimensiones
       val fila_siguiente: Int = ((pos + M) / M)
       val fila_anterior: Int = ((pos - M) / M)
-
       val col_siguiente: Int = (pos + 1) % M
       val col_anterior: Int = (pos - 1) % M
 
-      //println("COLOR ACTUAL de pos ",pos," -> ", color)
-      if (contiene(tablero, pos, size) && pos == pos_encontrar && (tablero(pos) == color || tablero(pos) == -1)) //tablero.isDefinedAt(pos)
-      {
-        //println("Entraaaa ", pos)
+      //Comprobamos si la posicion que nos llega es la posicion a encontrar, si es del color a buscar o 1 y que se encuentre dentro de los rangos del tablero
+      if (contiene(tablero, pos, size) && pos == pos_encontrar && (tablero(pos) == color || tablero(pos) == -1)) {
+        //Borramos la casilla que se corresponde con las pos actual ya que cumple con los requisitos de adyacencia
         val nuevo_tablero: List[Int] = insertarElementoPosicion(-1, pos, tablero)
+        //Comprobamos si la posicion actual tiene posiciones adyacentes del mismo color:
         if (col_siguiente < M && contiene(tablero, pos + 1, size) && col_siguiente != 0 && tablero(pos + 1) == color) // Derecha
         {
-          //println("DERERCHAAA desde ", pos, "a", pos + 1)
+          //Avanzamos a la derecha
+          //Realizamos la llamada recursiva actualizando el valor de la posicion a encontrar y la posicion actual al de la casilla a la derecha y asi ver si dicha casilla tambien tiene mas caminos adyacentes
           insertarElementoPosicion(-1, pos + 1, encontrarCaminos(nuevo_tablero, pos + 1, pos + 1, N, M, size, color, pos_original))
         }
         else if (col_anterior >= 0 && contiene(tablero, pos - 1, size) && col_anterior != M - 1 && tablero(pos - 1) == color) // Izquierda
         {
-          //println("IZQUIERDAAA desde ", pos, "a", pos - 1)
+          //Avanzamos a la izquierda
+          //Realizamos la llamada recursiva actualizando el valor de la posicion a encontrar y la posicion actual al de la casilla a la izquierda y asi ver si dicha casilla tambien tiene mas caminos adyacentes
           insertarElementoPosicion(-1, pos - 1, encontrarCaminos(nuevo_tablero, pos - 1, pos - 1, N, M, size, color, pos_original))
         }
         else if (fila_siguiente < N && contiene(tablero, pos + M, size) && fila_siguiente != 0 && tablero(pos + M) == color) // Abajo
         {
-          //println("ABAJOOO desde ", pos, "a", pos + M)
+          //Avanzamos hacia abajo y eliminamos la posicion de abajo del tablero poniéndola a -1
+          //Realizamos la llamada recursiva actualizando el valor de la posicion a encontrar y la posicion actual al de la casilla de abajo y asi ver si dicha casilla tambien tiene mas caminos adyacentes
           insertarElementoPosicion(-1, pos + M, encontrarCaminos(nuevo_tablero, pos + M, pos + M, N, M, size, color, pos_original))
         }
         else if (fila_anterior >= 0 && contiene(tablero, pos - M, size) && fila_anterior != N - 1 && tablero(pos - M) == color) // Arriba
         {
-          //println("ARRIBAAA desde ", pos, "a", pos - M)
+          //Avanzamos arriba
+          //Realizamos la llamada recursiva actualizando el valor de la posicion a encontrar y la posicion actual al de la casilla de arriba y asi ver si dicha casilla tambien tiene mas caminos adyacentes
           insertarElementoPosicion(-1, pos - M, encontrarCaminos(nuevo_tablero, pos - M, pos - M, N, M, size, color, pos_original))
         }
-        else
+        else //Si ninguna posicion de su alrededor es adyacente
         {
+          //Decrementamos el tamaño del tablero y pasamos la posicion_original desde la que aun faltan mas caminos por recorrer, ya que desde el camino que ha entrado no tiene más opciones
           encontrarCaminos(nuevo_tablero, pos_original, pos_original, N, M, size - 1, color, pos_original)
         }
       }
-      else
+      else //Si no cumple con uno de los requisitos del if, decrementamos la posicion del tablero
       {
         encontrarCaminos(tablero, pos_original, pos_original, N, M, size - 1, color, pos_original)
       }
     }
   }
 
-  //Funcion que cuenta el numero de casillas a borrar desde una posicion
-  def contarLongitudCamino(tablero: List[Int], pos_encontrar: Int, pos: Int, N: Int, M: Int, size: Int, color: Int, pos_original: Int): Int = {
-    size match
-    {
-      case 0 => 1
-      case _ =>
-        if (pos < 0 || pos >= size || !contiene(tablero, pos, size))
-        {
-          1
-        }
-        else {
-          val fila_siguiente: Int = ((pos + M) / M)
-          val fila_anterior: Int = ((pos - M) / M)
-
-          val col_siguiente: Int = (pos + 1) % M
-          val col_anterior: Int =  (pos - 1) % M
-
-
-          //println("COLOR ACTUAL de pos ",pos," -> ", color)
-          if (contiene(tablero, pos, size) && pos == pos_encontrar && (tablero(pos) == color || tablero(pos) == -1)) //tablero.isDefinedAt(pos)
-          {
-            //println("Entraaaa ", pos)
-            val nuevo_tablero: List[Int] = insertarElementoPosicion(-1, pos, tablero)
-            if (col_siguiente < M && contiene(tablero, pos + 1, size) && col_siguiente != 0 && tablero(pos + 1) == color) // Derecha
-            {
-              //println("DERERCHAAA desde ", pos, "a", pos + 1)
-              1 + contarLongitudCamino(nuevo_tablero, pos + 1, pos + 1, N, M, size, color, pos_original)
-            }
-            else if (col_anterior >= 0 && contiene(tablero, pos - 1, size) && col_anterior != M - 1 && tablero(pos - 1) == color) // Izquierda
-            {
-              //println("IZQUIERDAAA desde ", pos, "a", pos - 1)
-              1 + contarLongitudCamino(nuevo_tablero, pos - 1, pos - 1, N, M, size, color, pos_original)
-            }
-            else if (fila_siguiente < N && contiene(tablero, pos + M, size) && fila_siguiente != 0 && tablero(pos + M) == color) // Abajo
-            {
-              //println("ABAJOOO desde ", pos, "a", pos + M)
-              1 + contarLongitudCamino(nuevo_tablero, pos + M, pos + M, N, M, size, color, pos_original)
-            }
-            else if (fila_anterior >= 0 && contiene(tablero, pos - M, size) && fila_anterior != N - 1 && tablero(pos - M) == color) // Arriba
-            {
-              //println("ARRIBAAA desde ", pos, "a", pos - M)
-              1 + contarLongitudCamino(nuevo_tablero, pos - M, pos - M, N, M, size, color, pos_original)
-            }
-            else contarLongitudCamino(nuevo_tablero, pos_original, pos_original, N, M, size - 1, color, pos_original)
-          }
-          else
-          {
-            contarLongitudCamino(tablero, pos_original, pos_original, N, M, size - 1, color, pos_original)
-          }
-        }
-    }
-  }
 
   /**
    * Reemplaza las posiciones del tablero que han sido eliminadas
@@ -264,14 +308,18 @@ object funcionesTablero
    * @return tablero con nuevos colores
    */
   def reemplazarPosiciones(pos:Int, tablero:List[Int], N:Int, M:Int, dificultad:Int): List[Int] = {
-    val contador:Int = contadorBorrar(tablero)
+    //Obtiene el numero de posiciones que aún siguen sin tener un color asignado del tablero
+    val contador:Int = contarPosicionesBorradas(tablero)
     contador match
     {
       case 0 => tablero
       case _ => {
+        //Llamamos a la funcion auxiliar
         val nuevo:List[Int] = reemplazarAux(0, tablero, N, M, dificultad, contador, N*M)
-        if (contadorBorrar(nuevo) > 0)
+        //Si aún no se han reemplazado todas sus posiciones devovelvera un numero mayor que 0
+        if (contarPosicionesBorradas(nuevo) > 0)
         {
+          //Llamada recursiva
           reemplazarPosiciones(0, nuevo, N, M, dificultad)
         }
         else
@@ -282,34 +330,55 @@ object funcionesTablero
     }
   }
 
-  def reemplazarAux(pos: Int, tablero: List[Int], N: Int, M: Int, dificultad: Int, contador: Int, size:Int): List[Int] = {
-    if(pos >= size) tablero
-    else
+  /**
+   * Se sustituyen las posiciones marcadas por -1 por el valor de la casilla de arriba
+   * si es que tiene casilla de arriba (no es fila 0) o si la posición de arriba no es -1.
+   *
+   * @param pos
+   * @param tablero
+   * @param N
+   * @param M
+   * @param dificultad
+   * @param contador
+   * @param size
+   * @return
+   */
+  def reemplazarAux(pos: Int, tablero: List[Int], N: Int, M: Int, dificultad: Int, contador: Int, size: Int): List[Int] = {
+    if (pos >= size) tablero //Caso base
+    else //Caso recursivo
     {
-      if (tablero(pos) == -1)
+      if (tablero(pos) == -1) //Si la posicion que llega esta eliminada
       {
-        //println("Pos "+ pos+" = -1")
-        val filaActual: Int = pos / M;
+        val filaActual: Int = pos / M; //Calculamos la fila de la posicion actual
         val colActual: Int = pos % M;
 
+        //Comprobamos que su POSICIÓN de ARRIBA NO esté ELIMINADA y que la posicion esté DENTRO de las DIMENSIONES del tablero
         if (contiene(tablero, pos - M, N * M) && pos - M >= 0 && filaActual > 0 && filaActual <= N && tablero(pos - M) != -1) //Si la posicion de arriba es distinta de -1 se la asignamos a la posicion que nos llega y se la quitamos a la de arriba
         {
+          //Obtenemos el color de la posicion de arriba del tablero
           val elem: Int = tablero(pos - M)
-          val nuevo: List[Int] = insertarElementoPosicion(-1, pos-M, tablero)
-          insertarElementoPosicion(elem, pos, reemplazarAux(pos + 1, nuevo, N, M, dificultad, contador, size))
+
+          //Insertamos un -1 en la posicion de arriba del tablero
+          val nuevo: List[Int] = insertarElementoPosicion(-1, pos - M, tablero)
+
+          //Inserta el color en la posicion actual, continuamos realizando la llamada recursiva pasando a la siguiente posicion
+          insertarElementoPosicion(elem, pos, reemplazarAux(pos + 1, nuevo, N, M, dificultad, contador, size)) //Recursividad
         }
-        else if (filaActual == 0) //Si estas en la fila 0
+        else if (filaActual == 0) //Si estas en la fila 0, no puedes coger el color de la posicion de arriba, tienes que generar uno
         {
+          //Generamos color aleatorio
           val random = new Random(System.nanoTime())
           val color: Int = random.nextInt(dificultad) + 1
+          //Introducimos el color en la posicion actual y continuamos con la llamada recursiva
           insertarElementoPosicion(color, pos, reemplazarAux(pos + 1, tablero, N, M, dificultad, contador, size))
         }
-        else
+        else //La posicion de arriba sigue valiendo -1, hay que esperar a que tenga un color asignado antes de obtenerlo
         {
+          //Avanzamos a la siguiente posicion del tablero
           reemplazarAux(pos + 1, tablero, N, M, dificultad, contador, size)
         }
       }
-      else
+      else //Nos encontramos en una posicion que NO ha sido ELIMINADA
       {
         reemplazarAux(pos + 1, tablero, N, M, dificultad, contador, size)
       }
@@ -317,28 +386,37 @@ object funcionesTablero
   }
 
 
-  def encontrarBomba(tablero: List[Int], pos_encontrar: Int, N: Int, M:Int): List[Int] = {
+  /**
+   * Comprueba si se puede generar una bomba en el tablero
+   * @param tablero
+   * @param pos_encontrar
+   * @param N
+   * @param M
+   * @return tablero con bomba generada en caso de que uno de los contadores de filas y columnas sea igual a 5
+   */
+  def encontrarBomba(tablero: List[Int], pos_encontrar: Int, N: Int, M: Int): List[Int] = {
     //Contador de columna
     val numCol: Int = pos_encontrar % M;
+    //Obtiene una lista con los elementos de la columna buscada
     val listaCol: List[Int] = getColumna(0, tablero, numCol, M)
-    //println("Lista columnas", listaCol, "Num col", numCol)
-    val contCol:Int = contadorBorrar(listaCol)
+    //Recibe una lista con los elementos de la columna y cuenta el numero de apariciones puestas a -1 para ver si son 5, en cuyo caso se genererá una bomba
+    val contCol: Int = contarPosicionesBorradas(listaCol)
 
     //Contador de fila
     val numFila: Int = pos_encontrar / M;
+    //Obtiene una lista con los elementos de la fila buscada
     val listaFila: List[Int] = getFila(numFila, tablero, M)
-    //println("Lista Fila", listaFila)
-    val contFila:Int = contadorBorrar(listaFila)
+    //Recibe una lista con los elementos de la fila y devuelve un contador el numero de apariciones puestas a -1 para ver si son 5, en cuyo caso se genererá una bomba
+    val contFila: Int = contarPosicionesBorradas(listaFila)
 
     //Comparamos los valores de los contadores
-    if (contCol != contFila)
-    {
-      if(contCol == 5) insertarElementoPosicion(66, pos_encontrar, tablero)
+    if (contCol != contFila) {
+      //Insertamos las bombas en caso de que sea posible
+      if (contCol == 5) insertarElementoPosicion(66, pos_encontrar, tablero)
       else if (contFila == 5) insertarElementoPosicion(66, pos_encontrar, tablero)
       else tablero
     }
-    else
-    {
+    else {
       tablero
     }
   }
@@ -355,7 +433,7 @@ object funcionesTablero
   def encontrarRompecabezasTNT(tablero:List[Int], pos_encontrar:Int, N:Int, M:Int, dificultad:Int):List[Int] =
   {
 
-    val cont:Int = contadorBorrar(tablero)
+    val cont:Int = contarPosicionesBorradas(tablero)
 
     if (cont == 6) //Si el indice vale 6 es el TNT
     {
@@ -375,20 +453,35 @@ object funcionesTablero
     }
   }
 
-  //Funcion que lleva a cabo la accion del rompecabezas de eliminar todas las casillas que tengan su color
-  def realizarAccionRompecabezas(tablero:List[Int], pos:Int, pos_encontrar:Int, size:Int): List[Int] =
-  {
-    val colorBorrar : Int = tablero(pos_encontrar) % 7
-    if(pos >= size) insertarElementoPosicion(-1, pos_encontrar, tablero)
-    else
-    {
-      if(tablero(pos) == colorBorrar) insertarElementoPosicion(-1, pos, realizarAccionRompecabezas(tablero, pos + 1, pos_encontrar, size))
+  /**
+   * Funcion que lleva a cabo la accion del rompecabezas de eliminar todas las casillas que tengan su color
+   * @param tablero
+   * @param pos
+   * @param pos_encontrar
+   * @param size
+   * @return tablero con las casillas del color del RC eliminadas
+   */
+  def realizarAccionRompecabezas(tablero: List[Int], pos: Int, pos_encontrar: Int, size: Int): List[Int] = {
+    //Calculamos el color a borrar del tablero
+    val colorBorrar: Int = tablero(pos_encontrar) % 7
+    if (pos >= size) insertarElementoPosicion(-1, pos_encontrar, tablero) //Caso base
+    else { //Caso recursivo
+      //Si la posición tiene el color a borrar introducimos un -1 en dicha posicion
+      if (tablero(pos) == colorBorrar) insertarElementoPosicion(-1, pos, realizarAccionRompecabezas(tablero, pos + 1, pos_encontrar, size))
       else insertarElementoPosicion(tablero(pos), pos, realizarAccionRompecabezas(tablero, pos + 1, pos_encontrar, size))
     }
   }
 
 
-  //Funcion que lleva a cabo la accion de la bomba de eliminar todas las casillas de su misma fila y columna
+  /**
+   * Funcion que lleva a cabo la accion de la bomba de eliminar todas las casillas de su misma fila y columna
+   * @param tablero
+   * @param pos
+   * @param pos_encontrar
+   * @param size
+   * @param numCol
+   * @return tablero tras explotar una bomba
+   */
   def realizarAccionBomba(tablero: List[Int], pos: Int, pos_encontrar: Int, size: Int, numCol: Int): List[Int] =
   {
     if(pos >= size) insertarElementoPosicion(-1, pos_encontrar, tablero)
@@ -397,16 +490,27 @@ object funcionesTablero
       val filaActual: Int = pos / numCol
       val colActual : Int = pos % numCol
 
+      //Numero de fila y columna a eliminar
       val filaBorrar: Int = pos_encontrar / numCol
       val colBorrar: Int = pos_encontrar % numCol
 
+      //Si la fila o columna de la posicion actual se corresponde con la de fila y columna a borrar se elimina dicha casilla del tablero
       if(filaActual == filaBorrar || colActual == colBorrar)  insertarElementoPosicion(-1, pos, realizarAccionBomba(tablero, pos + 1, pos_encontrar, size, numCol))
       else insertarElementoPosicion(tablero(pos), pos, realizarAccionBomba(tablero, pos + 1, pos_encontrar, size, numCol))
     }
   }
 
 
-  //Funcion que lleva a cabo la accion del TNT de eliminar todas las casillas en un radio de 4 casillas
+  /**
+   * Funcion que lleva a cabo la accion del TNT de eliminar todas las casillas en un radio de 4 posiciones
+   * @param tablero
+   * @param pos
+   * @param pos_encontrar
+   * @param size
+   * @param numCol
+   * @param numFilas
+   * @return tablero casillas eliminadas
+   */
   def realizarAccionTNT(tablero: List[Int], pos: Int, pos_encontrar: Int, size: Int, numCol: Int, numFilas : Int): List[Int] =
   {
     if(pos >= size) insertarElementoPosicion(-1, pos_encontrar, tablero)
@@ -415,129 +519,157 @@ object funcionesTablero
       val filaActual: Int = pos / numCol
       val colActual: Int = pos % numCol
 
+      //Calculamos los limites dentro del radio 4 de casillas que va a explotar el TNT
       val limiteDerecho: Int = if((colActual + 4) < numCol) colActual + 4 else numCol - 1
       val limiteIzquierdo: Int = if((colActual - 4) < 0) 0 else filaActual - 4
       val limiteArriba: Int = if((filaActual - 4) < 0) 0 else colActual - 4
       val limiteAbajo: Int = if((filaActual + 4) < numFilas) filaActual + 4 else numFilas - 1
 
+      //Si la posicion se encuentra dentro del radio, se elimina
       if (colActual < limiteDerecho && colActual > limiteIzquierdo && filaActual < limiteAbajo && filaActual > limiteArriba)
         insertarElementoPosicion(-1, pos, realizarAccionTNT(tablero, pos + 1, pos_encontrar, size, numCol, numFilas))
-
-      else
+      else  //Posicion FUERA del radio
         insertarElementoPosicion(tablero(pos), pos, realizarAccionTNT(tablero, pos + 1, pos_encontrar, size, numCol, numFilas))
     }
   }
 
 
-  def contadorBorrar(listaFila:List[Int]): Int = {
-    listaFila match
-    {
+  /**
+   * Calcula el numero de apariciones de el valor -1 (que se corresponde con una posición eliminada)
+   * @param listaFila
+   * @return contador
+   */
+  def contarPosicionesBorradas(listaFila: List[Int]): Int = {
+    listaFila match {
       case Nil => 0
-      case head::Nil =>
-      {
-        if (head == -1) 1
+      case head :: Nil => {
+        if (head == -1) 1 //Si la cabeza es -1 esa posicion ha sido borrada, devolvemos un 1 para la suma de las posiciones borradas
         else 0
       }
-      case head::tail =>
-      {
-        if (head == -1) 1 + contadorBorrar(tail)
-        else  0 + contadorBorrar(tail)
+      case head :: tail => {
+        if (head == -1) 1 + contarPosicionesBorradas(tail) //Si la cabeza es -1 esa posicion ha sido borrada
+        else 0 + contarPosicionesBorradas(tail) //En cualquier otro caso la posicion no ha sido eliminada
       }
     }
   }
 
-  //Comprueba si cierta posicion esta dentro del rango del tablero
-  def contiene(tablero: List[Int], pos: Int, size: Int): Boolean =
-  {
+  /**
+   * Comprueba si la posicion esta dentro del rango del tablero
+   * @param tablero
+   * @param pos
+   * @param size
+   * @return true o false
+   */
+  def contiene(tablero: List[Int], pos: Int, size: Int): Boolean = {
     if (pos < 0) false
     else if (pos >= size) false
     else true
   }
 
-  //Obtiene elemento que se encuentra en la posicion index de la matriz
+
+  /**
+   * Obtiene elemento que se encuentra en la posicion index
+   * @param index
+   * @param matriz
+   * @return elemento que se encuentra en la posicion index
+   */
   def getElem(index: Int, matriz: List[Int]): Int = matriz match {
     case Nil => -1
     case head :: Nil =>
       head
     case head :: tail =>
       if (index < 0) -1
-      else if (index == 0) head
+      else if (index == 0) head //Si el index es 0 estamos en la posición buscada
       else getElem(index - 1, tail)
   }
 
-
+  /**
+   * Inserta un elemento en la pos dada una lista
+   * @param e
+   * @param pos
+   * @param lista
+   * @return lista con el elemento insertado en pos
+   */
   def insertarElementoPosicion(e: Int, pos: Int, lista: List[Int]): List[Int] = {
-    lista match
-    {
+    lista match {
       case Nil => e :: Nil //Si la lista esta vacia da igual ccuando insertarlo
-      case _ => pos match
-      {
+      case _ => pos match {
         case 0 => e :: lista.tail //Es la cabeza de la lista
-        case _ => lista.head :: insertarElementoPosicion(e, pos - 1, lista.tail) //Pos - 1 ya que nuestro base es buscar caso 0
+        case _ => lista.head :: insertarElementoPosicion(e, (pos - 1), lista.tail) //Pos - 1 ya que nuestro base es buscar caso 0
       }
     }
   }
 
-  //Obtiene los valores de la columna index
-  def getColumna(index: Int, matriz: List[Int], col:Int, numCol:Int): List[Int] = {
+  /**
+   * Obtiene los valores de la columna numero index
+   * @param index
+   * @param matriz
+   * @param col
+   * @param numCol
+   * @return lista con los elementos de la columna
+   */
+  def getColumna(index: Int, matriz: List[Int], col: Int, numCol: Int): List[Int] = {
     matriz match {
       case Nil => Nil
-      case head::Nil =>
-      {
-        if (index % numCol == col)  head::Nil
+      case head :: Nil => {
+        if (index % numCol == col) head :: Nil //El elemento forma parte de la columna buscada
         else Nil
       }
-      case head :: tail =>
-      {
-        if (index % numCol == col) head :: getColumna(index + 1, tail, col, numCol)
+      case head :: tail => {
+        if (index % numCol == col) head :: getColumna(index + 1, tail, col, numCol) //El elemento forma parte de la columna buscada
         else getColumna(index + 1, tail, col, numCol)
       }
     }
   }
 
-  //Funcion que calcula la longitud de un array
-  def obtenerLongitud(array: Array[String]): Int =
-  {
+  /**
+   * Funcion que calcula la longitud de un array
+   * @param array
+   * @return longitud
+   */
+  def obtenerLongitud(array: Array[String]): Int = {
     if (array.isEmpty) 0
     else 1 + obtenerLongitud(array.tail)
   }
-  //Obtiene los valores de la fila, utilizado para encontrar bomba
-  def getFila(fila: Int, matriz: List[Int], N:Int): List[Int] = matriz match {
-    case Nil => Nil
-    case head :: Nil => Nil
-    case head :: tail =>
-      if (fila == 0) toma(N, matriz)
-      else if (fila < 0) Nil
-      else
-        getFila((fila - 1), dejar(matriz.length - N, matriz), N)
+
+  /**
+   * Obtiene los valores de la fila, utilizado para encontrar bomba
+   * @param fila
+   * @param matriz
+   * @param N
+   * @return lista con los elementos de la fila
+   */
+  def getFila(fila: Int, matriz: List[Int], N: Int): List[Int] = fila match {
+    case 0 => toma(N, matriz) //Si nos encontramos en la primera fila
+    case _ => getFila((fila - 1), dejar(matriz.length - N, matriz), N)
   }
 
-  //Saca los n primeros elementos de la lista
+  /**
+   * Saca los n primeros elementos de la lista
+   * @param n
+   * @param l
+   * @return lista
+   */
   def toma(n: Int, l: List[Int]): List[Int] = l match {
     case Nil => Nil
-    case head :: Nil => head::Nil
+    case head :: Nil => head :: Nil
     case head :: tail =>
       if (n <= 0) Nil
       else head :: toma(n - 1, tail)
   }
 
-  //Saca los n ultimos elementos de la lista
+  /**
+   * Saca los n ultimos elementos de la lista
+   * @param n
+   * @param l
+   * @return lista
+   */
   def dejar(n: Int, l: List[Int]): List[Int] = l match {
     case Nil => Nil
-    case head :: Nil => l
+    case head :: Nil => head :: Nil
     case head :: tail =>
-      if (tail.length <= n - 1) l
+      if (tail.length <= n - 1) head :: dejar(n, tail) //Si la longitud de N es mayor o igual que el numero de elementos restantes concatenamos los elementos
       else dejar(n, tail)
-  }
-  def concatenar(tablero: List[Int], e: Int): List[Int] = {
-    tablero match {
-      case Nil => e :: Nil
-      case head :: tail =>
-        head match {
-          case _ if (e <= head) => e :: tablero //If else con granularidad especifica
-          case _ => head :: concatenar(tail, e)
-        }
-    }
   }
 
 }

@@ -123,7 +123,6 @@ object Main {
 
         //Funcion que determina la accion que se va a realizar en funcion del valor que tenga la casilla (Bomba, Rompecabezas, TNT o encontrar camino)
         val tablero2: List[Int] = determinarAccion(tablero, pos_encontrar, size, numFilas, numCol, color, dificultad)
-        mostrarTablero(tablero2, 0, numFilas, numCol)
 
         //Una vez que se ha realizado la accion, realizamos una comprobacion mediante restarVidas, para ver si hay que restar vidas al usuario
         val vida2: Int = restarVidas(tablero2, vidas, pos_encontrar)    //Si tablero2 contiene casillas con el valor -1 significa que desde dicha posicion se han borrado elementos

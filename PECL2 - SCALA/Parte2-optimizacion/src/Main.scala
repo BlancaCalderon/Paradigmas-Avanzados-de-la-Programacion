@@ -613,7 +613,6 @@ object Main {
 
   /**
    * Calcula el numero de apariciones de el valor -1 (que se corresponde con una posición eliminada)
-   *
    * @param listaFila
    * @return contador
    */
@@ -633,7 +632,6 @@ object Main {
 
   /**
    * Comprueba si la posicion esta dentro del rango del tablero
-   *
    * @param tablero
    * @param pos
    * @param size
@@ -648,7 +646,6 @@ object Main {
 
   /**
    * Obtiene elemento que se encuentra en la posicion index
-   *
    * @param index
    * @param matriz
    * @return elemento que se encuentra en la posicion index
@@ -728,7 +725,7 @@ object Main {
    * Saca los n primeros elementos de la lista
    * @param n
    * @param l
-   * @return
+   * @return lista
    */
   def toma(n: Int, l: List[Int]): List[Int] = l match {
     case Nil => Nil
@@ -740,10 +737,9 @@ object Main {
 
   /**
    * Saca los n ultimos elementos de la lista
-   *
    * @param n
    * @param l
-   * @return
+   * @return lista
    */
   def dejar(n: Int, l: List[Int]): List[Int] = l match {
     case Nil => Nil

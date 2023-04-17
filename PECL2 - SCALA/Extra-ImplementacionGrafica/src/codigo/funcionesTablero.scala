@@ -61,7 +61,6 @@ object funcionesTablero
 
       case _ =>
       {
-        //val pos_encontrar : Int = seleccionModoJuego(modoJuego, numFilas, numCol, dificultad, tablero)
         val color: Int = getElem(pos_encontrar, tablero)
 
         val tablero2: List[Int] = borrarSeleccion (tablero, pos_encontrar, size , numFilas, numCol, color, dificultad)
@@ -73,8 +72,6 @@ object funcionesTablero
         mostrarTablero(tablero3,0,numFilas, numCol)
 
         tablero3
-
-        //jugar(numFilas, numCol, dificultad, tablero3, modoJuego, vida2, pos_encontrar)
       }
     }
   }

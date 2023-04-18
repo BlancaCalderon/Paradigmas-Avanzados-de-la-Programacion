@@ -17,7 +17,7 @@ class ventanaInicial extends MainFrame {
 
   val fondo = ImageIO.read(new File("src/recursos/fondo.jpg"))
 
-  val button = new Button("Seleccionar opciones")
+  val button = new Button("Seleccionar opciones") //Establecemos el texto que se mostrará en el botón
   {
     background = java.awt.Color.yellow
     preferredSize = new Dimension(50, 20)   //Dimension del boton
@@ -120,6 +120,7 @@ class ventanaMenu extends MainFrame
 
     layout(startButton) = Position.South    //Establecemos un boton en la posicion de abajo
   }
+
   centerOnScreen()    //Centramos la pantalla
 }
 
@@ -164,9 +165,9 @@ class dibujarTablero(tablero: List[Int], numFilas: Int, numCol: Int, dificultad:
 {
   val (ancho, alto) = ((numCol + 1) * 25, (numFilas + 1) * 25)    //Calculamos el ancho y el alto del tablero
 
-  var tableroPanel: List[Int] = tablero
+  var tableroPanel: List[Int] = tablero     //Creamos una instancia de tipo var del tablero
   
-  funcionesTablero.mostrarTablero(tableroPanel, 0, numFilas, numCol)    //Llamamos al objeto funcionesTablero para mostrar
+  funcionesTablero.mostrarTablero(tableroPanel, 0, numFilas, numCol)    //Llamamos al objeto funcionesTablero para mostrar el tablero
 
   override def paintComponent(g: Graphics2D): Unit =
   {
@@ -175,7 +176,7 @@ class dibujarTablero(tablero: List[Int], numFilas: Int, numCol: Int, dificultad:
 
     preferredSize = new Dimension(ancho, alto)
 
-    //Recorremos el tablero mediante un bucle for para rellenarlo con las imagenes
+    //Recorremos el tablero mediante un bucle for para rellenarlo con las imagenes que se corresponden con el valor asociado a cada casilla
     for
     {
       i <- 0 until numFilas
@@ -186,10 +187,10 @@ class dibujarTablero(tablero: List[Int], numFilas: Int, numCol: Int, dificultad:
       val coordY = i * 25   //Calculamos la coordenada Y (multiplicamos por 25 ya que es lo que ocupa la imagen de cada ficha)
 
       //DeterminaFicha nos va a devolver la ruta al archivo con la imagen asociada a la casilla de dicho tabllero
-      val archivo = new File(getImagen(determinarFicha(tableroPanel(i * numCol + j))))    //Llamamos a determinarFicha
-      val imagen = ImageIO.read(archivo)      //Leemoos la val archivo que contiene la imagen asociad a al ficha de la casilla
+      val rutaImagen = new File(getImagen(determinarImagenFicha(tableroPanel(i * numCol + j))))    //Llamamos a determinarFicha
+      val imagen = ImageIO.read(rutaImagen)      //Leemoos la val archivo que contiene la imagen asociad a al ficha de la casilla
 
-      g.drawImage(imagen, coordX, coordY, 25, 25 , null)  //Dibujamos la imagen
+      g.drawImage(imagen, coordX, coordY, 25, 25 , null)  //Dibujamos la imagen en la posicion del tablero
 
     }
   }
@@ -209,7 +210,7 @@ class dibujarTablero(tablero: List[Int], numFilas: Int, numCol: Int, dificultad:
    * @param valor
    * @return posicion en el array de getImagen
    */
-    def determinarFicha( valor: Int): Int = {
+    def determinarImagenFicha(valor: Int): Int = {
       if(valor < 7)  valor - 1    //Color
       else if(valor < 14 && valor > 7) valor - 2  //RC
       else if(valor == 66) 12   //Bomba
@@ -218,32 +219,35 @@ class dibujarTablero(tablero: List[Int], numFilas: Int, numCol: Int, dificultad:
     }
 
   /**
-   * Si se pulsa el raton
+   * Si se pulsa una casilla del tablero
    * @param e
    */
   def mouseClicked(e: MouseEvent): Unit = {
+    //Usuario pulsa una casilla
     val point = e.point             //Almacena las coordenadas del evento e
     val insets = peer.getInsets()   //Almacena los márgenes (insets) del componente
-    val cellWidth = 25
-    val cellHeight = 25
-    val row = (point.getY() - insets.top) / cellHeight    //Calculamos el numero de fila de la coordenada Y
-    val col = (point.getX() - insets.left) / cellWidth    //Calculamos el numero de columna de la coordenada Y
+    val cellWidth = 25              //Tam de la imagen
+    val cellHeight = 25             //Tam de la imagen
+    val row = (point.getY() - insets.top) / cellHeight    //Calculamos el numero de fila de la coordenada Y pulsada por el usuario
+    val col = (point.getX() - insets.left) / cellWidth    //Calculamos el numero de columna de la coordenada Y pulsada por el usuario
 
     //Comprobamos que la fila y col se encuentren dentro de las dimensiones del tablero
     if (row >= 0 && col >= 0 && row < numFilas && col < numCol)
     {
-      //Modo de juego automatico
+      //Modo de juego automatico --> obtenemos la mejor jugada
       if (modoJuego == 'a')
       {
+        //Obtenemos la mejor casilla como jugada
         val pos_encontrar: Int = funcionesTablero.conseguirMejorJugada(tableroPanel, 0, numFilas, numCol, numFilas * numCol, dificultad, 0)
         println("Mejor posicon a borrar " + pos_encontrar)
+        //Tras ello comenzamos la partida y recogemos el tablero
         tableroPanel = funcionesTablero.jugar(numFilas, numCol, dificultad, tableroPanel, modoJuego, pos_encontrar)
         this.repaint()    //Se repinta el componente por pantalla
       }
-      else    //Manual
+      else    //Modo de juego Manual --> calculamos la casilla pulsada por el usuario
       {
         println(s"Se ha pulsado en la casilla (${row.toInt}, ${col.toInt})")    //Mostramos la casilla seleccionada por el usuario
-        //Calculamos la posicion a encontrar
+        //Calculamos la posicion a encontrar para enviarsela a jugar
         val pos_encontrar: Int = row.toInt * numCol + col.toInt
         //Llamamos a la funcion jugar() del objeto funcionesTablero pasandole el tableroPanel
         tableroPanel = funcionesTablero.jugar(numFilas, numCol, dificultad, tableroPanel, modoJuego, pos_encontrar)
@@ -252,7 +256,7 @@ class dibujarTablero(tablero: List[Int], numFilas: Int, numCol: Int, dificultad:
     }
   }
 
-  //Agrega el comportamiento de ratón al GridPanel
+  //Agrega el comportamiento de ratón
   listenTo(mouse.clicks)
   reactions += {
     case e: MouseClicked => mouseClicked(e)   //Llamamos a la funcion definida justo arriba

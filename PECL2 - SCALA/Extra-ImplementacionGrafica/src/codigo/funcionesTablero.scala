@@ -10,6 +10,10 @@ object funcionesTablero
      vidas
    }
 
+  def reiniciarVidas():Unit =
+  {
+    vidas = 5
+  }
   /**
    * Funcion que calcula cual seria la mejor posicion a borrar (mayor longitud de camino)
    * @param tablero

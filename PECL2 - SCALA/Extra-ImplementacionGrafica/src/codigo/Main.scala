@@ -256,7 +256,7 @@ class dibujarTablero(tablero: List[Int], numFilas: Int, numCol: Int, dificultad:
       {
         val ventanaF = new ventanaFinal()
         ventanaF.visible
-
+        this.visible = false
       }
       else this.repaint() //Se repinta el componente por pantalla
     }
@@ -275,29 +275,47 @@ class dibujarTablero(tablero: List[Int], numFilas: Int, numCol: Int, dificultad:
 class ventanaFinal() extends MainFrame
 {
   title = "Pantalla Final"
-  val fondo = ImageIO.read(new File("src/recursos/fondo.jpg"))
   preferredSize = new Dimension(320,240)
 
-  contents = new BoxPanel(Orientation.Vertical)
+  val fondo = ImageIO.read(new File("src/recursos/fondo.jpg"))
+
+  val buttonOtraVez = new Button("Volver a jugar") //Establecemos el texto que se mostrará en el botón
   {
-    contents += new Label("Has perdido! :(") {foreground = java.awt.Color.RED; Position.North}
+    background = java.awt.Color.yellow
+    preferredSize = new Dimension(50, 20) //Dimension del boton
+  }
 
-    contents += new Button("Jugar otra vez") {
-      reactions += {
-        case ButtonClicked(_) => // código para reiniciar el juego
-      }
-    }
+  val buttonTerminar = new Button("Salir") //Establecemos el texto que se mostrará en el botón
+  {
+    background = java.awt.Color.yellow
+    preferredSize = new Dimension(50, 20) //Dimension del boton
+  }
 
-    contents += new Button("Salir") {
-      reactions += {
-        case ButtonClicked(_) => sys.exit(0) // cerrar la ventana y terminar el programa
-      }
-    }
+  contents = new BorderPanel
+  {
+    layout(new Label("Has perdido :(") {foreground = java.awt.Color.RED}) = Position.Center
+
+    layout(buttonOtraVez) = Position.North //Ponemos un boton jugar otra vez
+    layout(buttonTerminar) = Position.South //Ponemos un boton terminar de jugar
+
     override def paintComponent(g: Graphics2D) = {
       super.paintComponent(g)
       g.drawImage(fondo, 0, 0, null)
     }
   }
+  buttonTerminar.reactions += //Eventos del boton
+    {
+      case event.ButtonClicked(_) => //Si se pulsa el boton
+        dispose() //Cierra y libera los recursos asociados a la ventana inicial
+    }
+  buttonOtraVez.reactions += //Eventos del boton
+    {
+      case event.ButtonClicked(_) => //Si se pulsa el boton
+        funcionesTablero.reiniciarVidas()
+        val ventana2 = new ventanaMenu //Se muestra el MENU
+        ventana2.visible = true //Muestra la nueva ventana del menu
+        dispose() //Cierra y libera los recursos asociados a la ventana inicial
+    }
 
   centerOnScreen()
   visible = true

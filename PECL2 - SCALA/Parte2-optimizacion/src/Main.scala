@@ -26,7 +26,6 @@ object Main {
    */
   def programaConsola(args: Int, modoJuego: Int, dificultad: Int, numFilas: Int, numCol: Int, vidas: Int): Unit = {
     if (args == 4) {
-      println("Modo juego " + modoJuego)
       val limiteNum: Int = definirDificultad(dificultad) //Establecemos la dificultad del juego en 4 o 6, en funcion del parametro introducido por el usuario
       val tablero: List[Int] = inicializarTablero(Nil, limiteNum, numFilas * numCol) //Rellenamos el tablero con colores
       mostrarTablero(tablero, 0, numFilas, numCol)
@@ -718,8 +717,10 @@ object Main {
    * @return longitud
    */
   def obtenerLongitud(array: Array[String]): Int = {
-    if (array.isEmpty) 0
-    else 1 + obtenerLongitud(array.tail)
+    array match {
+      case Array() => 0
+      case _ => 1 + obtenerLongitud(array.tail)
+    }
   }
 
   /**

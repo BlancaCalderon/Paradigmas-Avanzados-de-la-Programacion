@@ -242,7 +242,6 @@ class dibujarTablero(tablero: List[Int], numFilas: Int, numCol: Int, dificultad:
         println("Mejor posicon a borrar " + pos_encontrar)
         //Tras ello comenzamos la partida y recogemos el tablero
         tableroPanel = funcionesTablero.jugar(numFilas, numCol, dificultad, tableroPanel, modoJuego, pos_encontrar)
-        this.repaint()    //Se repinta el componente por pantalla
       }
       else    //Modo de juego Manual --> calculamos la casilla pulsada por el usuario
       {
@@ -252,7 +251,14 @@ class dibujarTablero(tablero: List[Int], numFilas: Int, numCol: Int, dificultad:
         //Llamamos a la funcion jugar() del objeto funcionesTablero pasandole el tableroPanel
         tableroPanel = funcionesTablero.jugar(numFilas, numCol, dificultad, tableroPanel, modoJuego, pos_encontrar)
       }
-      this.repaint() //Se repinta el componente por pantalla
+
+      if(funcionesTablero.getVidas() == 0)
+      {
+        val ventanaF = new ventanaFinal()
+        ventanaF.visible
+
+      }
+      else this.repaint() //Se repinta el componente por pantalla
     }
   }
 
@@ -263,6 +269,38 @@ class dibujarTablero(tablero: List[Int], numFilas: Int, numCol: Int, dificultad:
   }
 
   preferredSize = new Dimension(ancho, alto)  //Establecemos las dimensiones
+
+}
+
+class ventanaFinal() extends MainFrame
+{
+  title = "Pantalla Final"
+  val fondo = ImageIO.read(new File("src/recursos/fondo.jpg"))
+  preferredSize = new Dimension(320,240)
+
+  contents = new BoxPanel(Orientation.Vertical)
+  {
+    contents += new Label("Has perdido! :(") {foreground = java.awt.Color.RED; Position.North}
+
+    contents += new Button("Jugar otra vez") {
+      reactions += {
+        case ButtonClicked(_) => // código para reiniciar el juego
+      }
+    }
+
+    contents += new Button("Salir") {
+      reactions += {
+        case ButtonClicked(_) => sys.exit(0) // cerrar la ventana y terminar el programa
+      }
+    }
+    override def paintComponent(g: Graphics2D) = {
+      super.paintComponent(g)
+      g.drawImage(fondo, 0, 0, null)
+    }
+  }
+
+  centerOnScreen()
+  visible = true
 
 }
 

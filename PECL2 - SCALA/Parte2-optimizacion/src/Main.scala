@@ -25,15 +25,15 @@ object Main {
    * @param vidas
    */
   def programaConsola(args: Int, modoJuego: Int, dificultad: Int, numFilas: Int, numCol: Int, vidas: Int): Unit = {
-    if (args == 5) {
+    if (args == 4) {
       println("Modo juego " + modoJuego)
       val limiteNum: Int = definirDificultad(dificultad) //Establecemos la dificultad del juego en 4 o 6, en funcion del parametro introducido por el usuario
       val tablero: List[Int] = inicializarTablero(Nil, limiteNum, numFilas * numCol) //Rellenamos el tablero con colores
       mostrarTablero(tablero, 0, numFilas, numCol)
       jugar(numFilas, numCol, limiteNum, tablero, modoJuego.toChar, vidas) //Llamamos a jugar, se encarga de comenzar la partida
     }
-    else if (args < 5) throw new Error("Faltan argumentos en la llamada ")
-    else if (args > 5) throw new Error("Sobran argumentos en la llamdad")
+    else if (args < 4) throw new Error("Faltan argumentos en la llamada ")
+    else if (args > 4) throw new Error("Sobran argumentos en la llamdad")
   }
 
   /**
@@ -156,7 +156,20 @@ object Main {
     println("VIDAS " + vidas)
     vidas match
     {
-      case 0 => println("Has perdido")
+      case 0 => 
+      {
+        println("Has perdido")
+        println("Quieres jugar de nuevo? y/n")
+        val otraVez: Int = scala.io.StdIn.readChar()
+
+        if(otraVez == 'y')
+        {
+          val tablero2: List[Int] = inicializarTablero(Nil, dificultad, size)
+          mostrarTablero(tablero2, 0, numFilas, numCol)
+          jugar(numFilas, numCol, dificultad, tablero2, modoJuego, 5)
+        }
+        else  println("Adios!")
+      }
 
       case _ =>
       {

@@ -175,10 +175,14 @@ object Main {
         println("Cual es tu nickname?")
         val nombreUsuario = scala.io.StdIn.readLine()
 
-        //Rellena archivo TXT con los siguientes datos de la partida : nombre, puntuación, fecha y duración
         //Saca la fecha actual
-        val now = LocalDate.now()
-        println("Fecha " + now)
+        val fecha = LocalDate.now()
+        println("Fecha " + fecha)
+
+        //TODO: Codigo mandar datos a la base de datos (nombre, puntuación, fecha y duración) s
+        val listaDatos = (("nombre" , nombreUsuario) , ("puntuacion", puntuacion), ("fecha" , fecha), ("duracion", duracion))
+
+
 
         println("Quieres jugar de nuevo? y/n")
         val otraVez = scala.io.StdIn.readChar()

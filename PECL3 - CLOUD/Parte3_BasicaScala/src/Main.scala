@@ -1,17 +1,22 @@
 import scala.util.Random
+import java.time.LocalDate
+
+
 
 object Main {
 
   def main(args: Array[String]): Unit =
   {
     val vidas: Int = 5
+    val inicioEjecucion = System.currentTimeMillis()
+
     if (obtenerLongitud(args) > 0) { //Si se ha llamado al programa por comandos
       val modoJuego: Array[Char] = args(0).toCharArray
-      programaConsola(obtenerLongitud(args), modoJuego(0), args(1).toInt, args(2).toInt, args(3).toInt, vidas)
+      programaConsola(obtenerLongitud(args), modoJuego(0), args(1).toInt, args(2).toInt, args(3).toInt, vidas, inicioEjecucion)
     }
     else //Si no se ha llamado al programa por comandos
     {
-      programaTeclado(vidas)
+      programaTeclado(vidas, inicioEjecucion)
     }
   }
 
@@ -25,12 +30,12 @@ object Main {
    * @param numCol
    * @param vidas
    */
-  def programaConsola(args: Int, modoJuego: Int, dificultad: Int, numFilas: Int, numCol: Int, vidas: Int): Unit = {
+  def programaConsola(args: Int, modoJuego: Int, dificultad: Int, numFilas: Int, numCol: Int, vidas: Int, inicioEjecucion : Long): Unit = {
     if (args == 4) {
       val limiteNum: Int = definirDificultad(dificultad) //Establecemos la dificultad del juego en 4 o 6, en funcion del parametro introducido por el usuario
       val tablero: List[Int] = inicializarTablero(Nil, limiteNum, numFilas * numCol) //Rellenamos el tablero con colores
       mostrarTablero(tablero, 0, numFilas, numCol)
-      jugar(numFilas, numCol, limiteNum, tablero, modoJuego.toChar, vidas, 0) //Llamamos a jugar, se encarga de comenzar la partida
+      jugar(numFilas, numCol, limiteNum, tablero, modoJuego.toChar, vidas, 0, inicioEjecucion) //Llamamos a jugar, se encarga de comenzar la partida
     }
     else if (args < 4) throw new Error("Faltan argumentos en la llamada ")
     else if (args > 4) throw new Error("Sobran argumentos en la llamdad")
@@ -40,7 +45,7 @@ object Main {
    * Los datos de las variables son introducidos por el usuario a través del teclado
    * @param vidas
    */
-  def programaTeclado(vidas: Int): Unit = {
+  def programaTeclado(vidas: Int, inicioEjecucion : Long): Unit = {
     println("Introduce el numero de Filas del tablero: ")
     val numFilas: Int = scala.io.StdIn.readInt()
 
@@ -58,7 +63,7 @@ object Main {
 
     val tablero: List[Int] = inicializarTablero(Nil, limiteNum, size)
     mostrarTablero(tablero, 0, numFilas, numCol)
-    jugar(numFilas, numCol, limiteNum, tablero, modoJuego, vidas, 0)
+    jugar(numFilas, numCol, limiteNum, tablero, modoJuego, vidas, 0, inicioEjecucion)
   }
 
   def seleccionModoJuego(modoJuego: Char, numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int]): Int = {
@@ -151,17 +156,29 @@ object Main {
    * @param modoJuego
    * @param vidas
    */
-  def jugar(numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int], modoJuego: Char, vidas: Int, puntuacion: Int): Unit= {
+  def jugar(numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int], modoJuego: Char, vidas: Int, puntuacion: Int, inicioEjecucion : Long): Unit= {
     val size: Int = numCol * numFilas
     println("VIDAS " + vidas)
     vidas match
     {
       case 0 =>
       {
+        //Obtiene la hora de finalización
+        val end = System.currentTimeMillis()
+
+        //Calcula la duracion de la partida en segundos
+        val duracion = (end - inicioEjecucion) / 1000
+
         println("Has perdido")
+        println("La duracion de la partida en segundos ha sido: " + duracion)
 
         println("Cual es tu nickname?")
         val nombreUsuario = scala.io.StdIn.readLine()
+
+        //Rellena archivo TXT con los siguientes datos de la partida : nombre, puntuación, fecha y duración
+        //Saca la fecha actual
+        val now = LocalDate.now()
+        println("Fecha " + now)
 
         println("Quieres jugar de nuevo? y/n")
         val otraVez = scala.io.StdIn.readChar()
@@ -170,7 +187,7 @@ object Main {
         {
           val tablero2: List[Int] = inicializarTablero(Nil, dificultad, size)
           mostrarTablero(tablero2, 0, numFilas, numCol)
-          jugar(numFilas, numCol, dificultad, tablero2, modoJuego, 5, 0)
+          jugar(numFilas, numCol, dificultad, tablero2, modoJuego, 5, 0, inicioEjecucion)
         }
         else  println("Adios " + nombreUsuario + "!")
       }
@@ -198,7 +215,7 @@ object Main {
         mostrarTablero(tablero3,0,numFilas, numCol)
 
         //Llamada recursiva a jugar, con el tablero y el numero de vidas actualizado
-        jugar(numFilas, numCol, dificultad, tablero3, modoJuego, vida2, puntuacion2)
+        jugar(numFilas, numCol, dificultad, tablero3, modoJuego, vida2, puntuacion2, inicioEjecucion)
       }
     }
   }

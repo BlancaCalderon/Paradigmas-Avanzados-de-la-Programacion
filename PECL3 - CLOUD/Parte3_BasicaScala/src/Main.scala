@@ -1,12 +1,46 @@
 import scala.util.Random
 import java.time.LocalDate
+import org.json.JSONObject
 
+import java.io.OutputStreamWriter
+import java.net.{HttpURLConnection, URL}
+
+import org.json4s._
+import play.api.libs.json._
 
 
 object Main {
 
   def main(args: Array[String]): Unit =
   {
+    //METODO POST
+    val url = new URL("http://express1360126253.azurewebsites.net/inventory")
+    val connection = url.openConnection().asInstanceOf[HttpURLConnection]
+
+    connection.setRequestMethod("POST")
+    connection.setDoOutput(true)
+
+    //Hace objeto JSON con los datos a enviar
+   /* val payload = new JSONObject()
+      .put("id", 5)
+      .put("name", "AssaAA")
+      .put("quantity", 75)
+      .put("duracion", 87)
+      .toString
+    val bodyBytes = payload.getBytes("UTF-8")
+
+    connection.setRequestProperty("Content-Type", "application/json")
+    connection.setRequestProperty("Content-Length", bodyBytes.length.toString)
+
+    val wr = new OutputStreamWriter(connection.getOutputStream())
+    wr.write(payload)
+    wr.flush()
+    println(connection.getResponseCode())
+    wr.close()
+
+    println(connection.getResponseCode())
+*/
+
     val vidas: Int = 5
     val inicioEjecucion = System.currentTimeMillis()
 
@@ -170,7 +204,7 @@ object Main {
         val duracion = (end - inicioEjecucion) / 1000
 
         println("Has perdido")
-        println("La duracion de la partida en segundos ha sido: " + duracion)
+        println("La duracion de la partida en segundos ha sido: " + duracion + "segundos")
 
         println("Cual es tu nickname?")
         val nombreUsuario = scala.io.StdIn.readLine()
@@ -179,10 +213,33 @@ object Main {
         val fecha = LocalDate.now()
         println("Fecha " + fecha)
 
-        //TODO: Codigo mandar datos a la base de datos (nombre, puntuación, fecha y duración) s
-        val listaDatos = (("nombre" , nombreUsuario) , ("puntuacion", puntuacion), ("fecha" , fecha), ("duracion", duracion))
+        //TODO: Codigo mandar datos a la base de datos (nombre, puntuación, fecha y duración)
+        val url = new URL("http://express1360126253.azurewebsites.net/inventory")
+        val connection = url.openConnection().asInstanceOf[HttpURLConnection]
 
+        connection.setRequestMethod("POST")
+        connection.setDoOutput(true)
 
+        //Hace objeto JSON con los datos a enviar
+        val payload = new JSONObject()
+          .put("id", obtenerUltimoId() + 1)
+          .put("name", nombreUsuario)
+          .put("quantity", puntuacion)
+          .put("date", fecha)
+          .put("duracion", duracion)
+          .toString
+        val bodyBytes = payload.getBytes("UTF-8")
+
+        connection.setRequestProperty("Content-Type", "application/json")
+        connection.setRequestProperty("Content-Length", bodyBytes.length.toString)
+
+        val wr = new OutputStreamWriter(connection.getOutputStream())
+        wr.write(payload)
+        wr.flush()
+        println(connection.getResponseCode())
+        wr.close()
+
+        println(connection.getResponseCode())
 
         println("Quieres jugar de nuevo? y/n")
         val otraVez = scala.io.StdIn.readChar()
@@ -222,6 +279,32 @@ object Main {
         jugar(numFilas, numCol, dificultad, tablero3, modoJuego, vida2, puntuacion2, inicioEjecucion)
       }
     }
+  }
+
+  //Funcion que devuelve el valor del ultimo identificador guardado
+  def obtenerUltimoId() : Int =
+  {
+    val ulrGet = new URL("http://express1360126253.azurewebsites.net/inventory")
+    val connectionGet = ulrGet.openConnection().asInstanceOf[HttpURLConnection]
+    connectionGet.setRequestMethod("GET")
+    val responseBody = scala.io.Source.fromInputStream(connectionGet.getInputStream).mkString
+
+    //Codigo que obtiene el ultimo valor de id
+    val inventoryStartIndex = responseBody.indexOf("[")
+    val inventoryEndIndex = responseBody.lastIndexOf("]")
+    val inventoryString = responseBody.substring(inventoryStartIndex, inventoryEndIndex + 1)
+
+    val inventoryArray = inventoryString.split("\\{").drop(1)
+
+    val lastItem = inventoryArray.last
+
+    val lastIdStartIndex = lastItem.indexOf("id") + 3
+    val lastIdEndIndex = lastItem.indexOf(",", lastIdStartIndex)
+    val lastId = lastItem.substring(lastIdStartIndex, lastIdEndIndex)
+
+    println(lastId.substring(1).toInt)
+
+    lastId.substring(1).toInt
   }
 
   /**

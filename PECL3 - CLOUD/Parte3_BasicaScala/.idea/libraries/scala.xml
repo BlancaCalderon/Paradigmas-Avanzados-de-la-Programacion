@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="scala">
+    <CLASSES />
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/Downloads/json4s-master.zip!/json4s-master/core/src/main/scala" />
+      <root url="jar://$USER_HOME$/Downloads/json4s-master.zip!/json4s-master/tests/src/test/scala" />
+    </SOURCES>
+  </library>
+</component>

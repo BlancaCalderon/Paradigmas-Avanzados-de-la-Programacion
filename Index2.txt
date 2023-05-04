@@ -1,0 +1,136 @@
+const Sequelize = require('sequelize')
+const sequelize = new Sequelize('postgres://Estudiante%40cundycrash:Pa55w0rd1234@cundycrash.postgres.database.azure.com:5432/cnainventory')
+sequelize
+.authenticate()
+.then(() => {
+   console.log('Connection has been established successfully.');
+})
+.catch(err => {
+   console.error('Unable to connect to the database:', err);
+});
+
+const Inventory = sequelize.define('inventory', {
+   id: { type: Sequelize.INTEGER, allowNull: false, primaryKey: true },
+   name: { type: Sequelize.STRING, allowNull: false },
+   quantity: { type: Sequelize.INTEGER },
+   date: { type: Sequelize.DATEONLY, defaultValue: Sequelize.NOW },
+   duracion: { type: Sequelize.INTEGER }
+}, {
+   freezeTableName: true,
+   timestamps: false
+});
+
+const express = require('express')
+const port = process.env.PORT || 8080
+const app = express()
+app.use(express.json());
+app.listen(port, () => console.log(`Sample app is listening on port ${port}!`))
+
+app.post('/inventory', async (req, res) => {
+try {
+   const newItem = new Inventory(req.body)
+   await newItem.save()
+   res.json({ inventory: newItem })
+} catch(error) {
+   console.error(error)
+}})
+
+app.get('/inventory/id/:id', async (req, res) => {
+   const id = req.params.id
+   try {
+  const inventory = await Inventory.findAll({
+      attributes: ['id', 'name', 'quantity', 'date', 'duracion'],
+      where: {
+         id: id
+      }})
+      res.json({ inventory })
+   } catch(error) {
+       console.error(error)
+}})
+
+app.get('/inventory/puntuacion/:quantity', async (req, res) => {
+   const quantity = req.params.quantity
+   try {
+  const inventory = await Inventory.findAll({
+      attributes: ['id', 'name', 'quantity', 'date', 'duracion'],
+      where: {
+         quantity: quantity
+      }})
+      res.json({ inventory })
+   } catch(error) {
+       console.error(error)
+}})
+
+app.get('/inventory/fecha/:fecha', async (req, res) => {
+   const fecha = req.params.fecha
+   try {
+  const inventory = await Inventory.findAll({
+      attributes: ['id', 'name', 'quantity', 'date', 'duracion'],
+      where: {
+         fecha: fecha
+      }})
+      res.json({ inventory })
+   } catch(error) {
+       console.error(error)
+}})
+
+app.get('/inventory/duracion/:duracion', async (req, res) => {
+   const duracion = req.params.duracion
+   try {
+  const inventory = await Inventory.findAll({
+      attributes: ['id', 'name', 'quantity', 'date', 'duracion'],
+      where: {
+         duracion: duracion
+      }})
+      res.json({ inventory })
+   } catch(error) {
+       console.error(error)
+}})
+ /*
+      ejs.renderFile(__dirname + '/views/inventory.ejs', { inventory }, function(err, html) {
+      if (err) {
+        console.error(err);
+        res.status(500).send('Error en el servidor');
+      } else {
+        
+        //res.render('inventory', { inventory });
+        res.send(html);
+      }
+    });
+    */
+// Importar modelo de datos de inventario
+const ejs = require('ejs');
+app.get('/inventory', async (req, res) => {
+   try {
+    const inventory = await Inventory.findAll({
+         attributes: ['id', 'name', 'quantity', 'date', 'duracion'],
+      });
+     // res.render('inventory', { inventory });
+      res.end(<html>
+            <head>
+                <title>Demo</title>
+            </head>
+            <body>
+                <h2>Welcome to GeeksforGeeks</h2>
+            </body>
+        </html>
+        )
+   } catch(error) {
+      console.error(error);
+      res.status(500).json({ message: 'Error en el servidor' });
+   }
+});
+
+//res.json({ inventory });
+
+app.get('/inventoryId', async (req, res) => {
+   try {
+    const inventory = await Inventory.findAll({
+         attributes: ['id']
+      });
+      res.json({ inventory });
+   } catch(error) {
+      console.error(error);
+      res.status(500).json({ message: 'Error en el servidor' });
+   }
+});

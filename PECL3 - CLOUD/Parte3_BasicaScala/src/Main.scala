@@ -13,34 +13,6 @@ object Main {
 
   def main(args: Array[String]): Unit =
   {
-    //METODO POST
-    val url = new URL("http://express1360126253.azurewebsites.net/inventory")
-    val connection = url.openConnection().asInstanceOf[HttpURLConnection]
-
-    connection.setRequestMethod("POST")
-    connection.setDoOutput(true)
-
-    //Hace objeto JSON con los datos a enviar
-   /* val payload = new JSONObject()
-      .put("id", 5)
-      .put("name", "AssaAA")
-      .put("quantity", 75)
-      .put("duracion", 87)
-      .toString
-    val bodyBytes = payload.getBytes("UTF-8")
-
-    connection.setRequestProperty("Content-Type", "application/json")
-    connection.setRequestProperty("Content-Length", bodyBytes.length.toString)
-
-    val wr = new OutputStreamWriter(connection.getOutputStream())
-    wr.write(payload)
-    wr.flush()
-    println(connection.getResponseCode())
-    wr.close()
-
-    println(connection.getResponseCode())
-*/
-
     val vidas: Int = 5
     val inicioEjecucion = System.currentTimeMillis()
 
@@ -236,10 +208,8 @@ object Main {
         val wr = new OutputStreamWriter(connection.getOutputStream())
         wr.write(payload)
         wr.flush()
-        println(connection.getResponseCode())
+        println(connection.getResponseCode(), connection.getResponseMessage)
         wr.close()
-
-        println(connection.getResponseCode())
 
         println("Quieres jugar de nuevo? y/n")
         val otraVez = scala.io.StdIn.readChar()

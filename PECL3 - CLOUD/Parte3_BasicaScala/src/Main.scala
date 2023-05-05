@@ -2,11 +2,10 @@ import scala.util.Random
 import java.time.LocalDate
 import org.json.JSONObject
 
-import java.io.OutputStreamWriter
+import java.io.{BufferedWriter, File, FileWriter, OutputStreamWriter, PrintWriter}
 import java.net.{HttpURLConnection, URL}
+import scala.io.Source
 
-import org.json4s._
-import play.api.libs.json._
 
 
 object Main {
@@ -176,25 +175,28 @@ object Main {
         val duracion = (end - inicioEjecucion) / 1000
 
         println("Has perdido")
-        println("La duracion de la partida en segundos ha sido: " + duracion + "segundos")
+        println("La duracion de la partida en segundos ha sido: " + duracion + " segundos")
+        println("Puntuación Total: " + puntuacion)
 
         println("Cual es tu nickname?")
         val nombreUsuario = scala.io.StdIn.readLine()
 
         //Saca la fecha actual
         val fecha = LocalDate.now()
-        println("Fecha " + fecha)
 
-        //TODO: Codigo mandar datos a la base de datos (nombre, puntuación, fecha y duración)
-        val url = new URL("http://express1360126253.azurewebsites.net/inventory")
+        //Codigo que manda datos a la página web (nombre, puntuación, fecha y duración)
+        val url = new URL("https://express609921618.azurewebsites.net/inventory")
         val connection = url.openConnection().asInstanceOf[HttpURLConnection]
 
         connection.setRequestMethod("POST")
         connection.setDoOutput(true)
+        val ultimoId = obtenerUltimoId()
+        val nuevoId = ultimoId + 1
+        guardarId(nuevoId)
 
         //Hace objeto JSON con los datos a enviar
         val payload = new JSONObject()
-          .put("id", obtenerUltimoId() + 1)
+          .put("id", nuevoId)
           .put("name", nombreUsuario)
           .put("quantity", puntuacion)
           .put("date", fecha)
@@ -251,30 +253,26 @@ object Main {
     }
   }
 
+  def guardarId(id : Int): Unit =
+  {
+    val fw = new FileWriter(new File("id_generados.txt"), true)
+    val bw = new BufferedWriter(fw)
+
+    // Escribe el nuevo dato en una nueva línea en el archivo
+    bw.write(id.toString)
+    bw.newLine()
+
+    // Cierra el BufferedWriter y FileWriter para guardar los cambios en el archivo
+    bw.close()
+    fw.close()
+  }
+
   //Funcion que devuelve el valor del ultimo identificador guardado
   def obtenerUltimoId() : Int =
   {
-    val ulrGet = new URL("http://express1360126253.azurewebsites.net/inventory")
-    val connectionGet = ulrGet.openConnection().asInstanceOf[HttpURLConnection]
-    connectionGet.setRequestMethod("GET")
-    val responseBody = scala.io.Source.fromInputStream(connectionGet.getInputStream).mkString
-
-    //Codigo que obtiene el ultimo valor de id
-    val inventoryStartIndex = responseBody.indexOf("[")
-    val inventoryEndIndex = responseBody.lastIndexOf("]")
-    val inventoryString = responseBody.substring(inventoryStartIndex, inventoryEndIndex + 1)
-
-    val inventoryArray = inventoryString.split("\\{").drop(1)
-
-    val lastItem = inventoryArray.last
-
-    val lastIdStartIndex = lastItem.indexOf("id") + 3
-    val lastIdEndIndex = lastItem.indexOf(",", lastIdStartIndex)
-    val lastId = lastItem.substring(lastIdStartIndex, lastIdEndIndex)
-
-    println(lastId.substring(1).toInt)
-
-    lastId.substring(1).toInt
+    val lineas = Source.fromFile("id_generados.txt").getLines().toList
+    val ultimoDato = lineas.last.toInt
+    ultimoDato
   }
 
   /**

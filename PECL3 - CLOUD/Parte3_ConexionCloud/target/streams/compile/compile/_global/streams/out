@@ -1,6 +1,0 @@
-[debug] Acquiring lock on file C:\Users\blanf\OneDrive\Escritorio\Paradigmas Avanzados de Programacion\Practica\Paradigmas-Avanzados-de-la-Programacion\PECL3 - CLOUD\Parte3_ConexionCloud\project\target\.sbt-compilation-infos\root-compile\.sbt-idea-lock ...
-[error] C:\Users\blanf\OneDrive\Escritorio\Paradigmas Avanzados de Programacion\Practica\Paradigmas-Avanzados-de-la-Programacion\PECL3 - CLOUD\Parte3_ConexionCloud\src\main\scala\main.scala:7:12: object json is not a member of package org
-[error] import org.json.JSONObject
-[error]            ^
-[error] one error found
-[debug] Releasing lock on file C:\Users\blanf\OneDrive\Escritorio\Paradigmas Avanzados de Programacion\Practica\Paradigmas-Avanzados-de-la-Programacion\PECL3 - CLOUD\Parte3_ConexionCloud\project\target\.sbt-compilation-infos\root-compile\.sbt-idea-lock.

@@ -190,13 +190,12 @@ object Main {
 
         connection.setRequestMethod("POST")
         connection.setDoOutput(true)
-        val ultimoId = obtenerUltimoId()
-        val nuevoId = ultimoId + 1
-        guardarId(nuevoId)
+        //val ultimoId = obtenerUltimoId()
+        //val nuevoId = ultimoId + 1
+        //guardarId(nuevoId)
 
         //Hace objeto JSON con los datos a enviar
-        val payload = new JSONObject()
-          .put("id", nuevoId)
+        val payload = new JSONObject()   //.put("id", JSONObject.NULL)
           .put("name", nombreUsuario)
           .put("quantity", puntuacion)
           .put("date", fecha)
@@ -218,9 +217,7 @@ object Main {
 
         if(otraVez == 'y')
         {
-          val tablero2: List[Int] = inicializarTablero(Nil, dificultad, size)
-          mostrarTablero(tablero2, 0, numFilas, numCol)
-          jugar(numFilas, numCol, dificultad, tablero2, modoJuego, 5, 0, inicioEjecucion)
+          programaTeclado(5, 0)
         }
         else  println("Adios " + nombreUsuario + "!")
       }

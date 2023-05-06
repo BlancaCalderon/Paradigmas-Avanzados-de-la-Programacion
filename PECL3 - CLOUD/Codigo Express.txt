@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Clasificacion</title>
+   <style>
+    /* Estilos para la tabla */
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: #4CAF50;
+      color: white;
+    }
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+<body>
+  <h1>Clasificacion</h1>
+  <form>
+    <label for="id">ID:</label>
+    <input type="text" id="id" name="id">
+    <label for="date">Fecha:</label>
+    <input type="text" id="date" name="date">
+    <button type="submit">Filtrar</button>
+    <button type="reset" id="reset-button">Vaciar</button>
+  </form>
+  <table id="inventory-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Usuario</th>
+        <th>Puntuacion</th>
+        <th>Fecha</th>
+        <th>Duración</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each inventory}}
+      <tr>
+        <td>{{id}}</td>
+        <td>{{name}}</td>
+        <td>{{quantity}}</td>
+        <td>{{date}}</td>
+        <td>{{duracion}}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      
+      document.querySelector('form').addEventListener('submit', function(event) {
+        event.preventDefault(); // Evita que se envíe el formulario por defecto
+        const id = document.querySelector('#id').value; // Obtiene el ID ingresado por el usuario
+        const date = document.querySelector('#date').value; // Obtiene la fecha ingresada por el usuario
+        filterTable(id, date); // Filtra la tabla según el ID y la fecha
+      });
+
+      // Agregar el evento "click" al botón reset
+      document.querySelector('#reset-button').addEventListener('click', function(event) {
+        event.preventDefault(); // Evita que se envíe el formulario por defecto
+        resetTable(); // Muestra todos los elementos de la tabla
+        document.querySelector('form').reset(); // Limpia los campos del formulario
+      });
+
+      function filterTable(id, date) {
+        const table = document.querySelector('#inventory-table');
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+          const rowId = row.querySelector('td:first-child').textContent;
+          const rowDate = row.querySelector('td:nth-child(4)').textContent;
+          const idMatch = id === '' || rowId === id;
+          const dateMatch = date === '' || rowDate === date;
+          if (idMatch && dateMatch) {
+            row.style.display = '';
+          } else {
+            row.style.display = 'none';
+          }
+        });
+      }
+
+      function resetTable() {
+        const table = document.querySelector('#inventory-table');
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+          row.style.display = '';
+        });
+    }
+  });  
+  </script>
+</body>
+</html>

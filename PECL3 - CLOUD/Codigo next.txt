@@ -1,0 +1,88 @@
+declare global {
+  namespace NodeJS {
+    interface Global {
+      prisma: any;
+    }
+  }
+}
+
+import prisma from '../lib/prisma';
+import Head from "next/head";
+import { useState } from 'react';
+
+export const getServerSideProps = async ({ req }) => {
+  const inventory = await prisma.inventory.findMany({
+  })
+  return { props: {inventory} }
+}
+
+
+export default function Inventory({ inventory }) {
+  const [filterId, setFilterId] = useState('');
+  const [sortColumn, setSortColumn] = useState('date');
+  const [sortOrder, setSortOrder] = useState('asc');
+
+  const handleSort = (column) => {
+    if (column === sortColumn) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortOrder('asc');
+    }
+  };
+
+  const filteredInventory =
+    filterId.trim() === ''
+      ? inventory
+      : inventory.filter(({ id }) => id === parseInt(filterId));
+
+  const sortedInventory = filteredInventory.sort((a, b) => {
+    const aValue = a[sortColumn];
+    const bValue = b[sortColumn];
+    if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  return (
+    <div>
+      <Head>
+        <title>Inventario</title>
+      </Head>
+      <div className="table-container">
+        <table style={{ width: '100%', margin: 'auto', tableLayout: 'fixed' }}>
+          <thead>
+            <tr style={{ backgroundColor: 'orange' }}>
+              <th onClick={() => handleSort('id')} className="px-6 py-3 text-left">
+                ID{sortColumn === 'id' ? sortOrder === 'asc' ? ' ▲' : ' ▼' : ''}
+              </th>
+              <th onClick={() => handleSort('name')} className="px-6 py-3 text-left">
+                Nombre{sortColumn === 'name' ? sortOrder === 'asc' ? ' ▲' : ' ▼' : ''}
+              </th>
+              <th onClick={() => handleSort('quantity')} className="px-6 py-3 text-left">
+                Puntuación{sortColumn === 'quantity' ? sortOrder === 'asc' ? ' ▲' : ' ▼' : ''}
+              </th>
+              <th onClick={() => handleSort('date')} className="px-6 py-3 text-left">
+                Fecha{sortColumn === 'date' ? sortOrder === 'asc' ? ' ▲' : ' ▼' : ''}
+              </th>
+              <th onClick={() => handleSort('duracion')} className="px-6 py-3 text-left">
+                Duración{sortColumn === 'duracion' ? sortOrder === 'asc' ? ' ▲' : ' ▼' : ''}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedInventory.map(({ id, name, quantity, date, duracion }) => (
+              <tr key={id}>
+                <td className="px-6 py-4 whitespace-nowrap">{id}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{name}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{quantity}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{date.toString().substring(0, 10)}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{duracion}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

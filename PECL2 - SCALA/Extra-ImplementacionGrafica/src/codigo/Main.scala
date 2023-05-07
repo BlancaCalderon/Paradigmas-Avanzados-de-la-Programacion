@@ -1,5 +1,6 @@
 package codigo
 
+import java.awt.Color
 import java.io.File
 import javax.imageio.ImageIO
 import scala.swing.BorderPanel.Position
@@ -183,6 +184,9 @@ class dibujarTablero(tablero: List[Int], numFilas: Int, numCol: Int, dificultad:
       j <- 0  until numCol
     }
     {
+      g.setColor(Color.RED)
+      g.drawString("Vidas: " + funcionesTablero.getVidas(), 10, alto + 15)
+
       val coordX = j * 25   //Calculamos la coordenada X (multiplicamos por 25 ya que es lo que ocupa la imagen de cada ficha)
       val coordY = i * 25   //Calculamos la coordenada Y (multiplicamos por 25 ya que es lo que ocupa la imagen de cada ficha)
 

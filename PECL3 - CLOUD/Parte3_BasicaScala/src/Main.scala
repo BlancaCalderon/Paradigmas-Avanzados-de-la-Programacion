@@ -190,24 +190,21 @@ object Main {
 
         connection.setRequestMethod("POST")
         connection.setDoOutput(true)
-        //val ultimoId = obtenerUltimoId()
-        //val nuevoId = ultimoId + 1
-        //guardarId(nuevoId)
 
         //Hace objeto JSON con los datos a enviar
-        val payload = new JSONObject()   //.put("id", JSONObject.NULL)
+        val datos = new JSONObject()   //.put("id", JSONObject.NULL)
           .put("name", nombreUsuario)
           .put("quantity", puntuacion)
           .put("date", fecha)
           .put("duracion", duracion)
           .toString
-        val bodyBytes = payload.getBytes("UTF-8")
+        val bodyBytes = datos.getBytes("UTF-8")
 
         connection.setRequestProperty("Content-Type", "application/json")
         connection.setRequestProperty("Content-Length", bodyBytes.length.toString)
 
         val wr = new OutputStreamWriter(connection.getOutputStream())
-        wr.write(payload)
+        wr.write(datos)
         wr.flush()
         println(connection.getResponseCode(), connection.getResponseMessage)
         wr.close()
@@ -217,7 +214,7 @@ object Main {
 
         if(otraVez == 'y')
         {
-          programaTeclado(5, 0)
+          programaTeclado(5, System.currentTimeMillis())
         }
         else  println("Adios " + nombreUsuario + "!")
       }
@@ -229,7 +226,6 @@ object Main {
         //Obtiene el valor de la casilla con la que vamos a realizar la jugada
         val color: Int = getElem(pos_encontrar, tablero)
 
-        println("Longitud del camino = " + contarPosicionesBorradas(encontrarCaminosAux(tablero, pos_encontrar, 0, numFilas, numCol, size, tablero(pos_encontrar), pos_encontrar)))
         //Funcion que determina la accion que se va a realizar en funcion del valor que tenga la casilla (Bomba, Rompecabezas, TNT o encontrar camino)
         val tablero2: List[Int] = determinarAccion (tablero, pos_encontrar, size , numFilas, numCol, color, dificultad)
 
@@ -248,28 +244,6 @@ object Main {
         jugar(numFilas, numCol, dificultad, tablero3, modoJuego, vida2, puntuacion2, inicioEjecucion)
       }
     }
-  }
-
-  def guardarId(id : Int): Unit =
-  {
-    val fw = new FileWriter(new File("id_generados.txt"), true)
-    val bw = new BufferedWriter(fw)
-
-    // Escribe el nuevo dato en una nueva línea en el archivo
-    bw.write(id.toString)
-    bw.newLine()
-
-    // Cierra el BufferedWriter y FileWriter para guardar los cambios en el archivo
-    bw.close()
-    fw.close()
-  }
-
-  //Funcion que devuelve el valor del ultimo identificador guardado
-  def obtenerUltimoId() : Int =
-  {
-    val lineas = Source.fromFile("id_generados.txt").getLines().toList
-    val ultimoDato = lineas.last.toInt
-    ultimoDato
   }
 
   /**

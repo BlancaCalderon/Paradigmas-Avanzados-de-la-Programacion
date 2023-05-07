@@ -1,0 +1,130 @@
+const Sequelize = require('sequelize')
+const sequelize = new Sequelize('postgres://Estudiante%40cundycrush:Pa55w0rd1234@cundycrush.postgres.database.azure.com:5432/cnainventory')
+sequelize
+.authenticate()
+.then(() => {
+   console.log('Connection has been established successfully.');
+})
+.catch(err => {
+   console.error('Unable to connect to the database:', err);
+});
+
+const Inventory = sequelize.define('inventory', {
+   id: { type: Sequelize.INTEGER, autoIncrement: true, primaryKey: true },
+   name: { type: Sequelize.STRING, allowNull: false },
+   quantity: { type: Sequelize.INTEGER, allowNull: false },
+   date: { type: Sequelize.DATEONLY, defaultValue: Sequelize.NOW },
+   duracion: { type: Sequelize.INTEGER, allowNull: false}
+}, {
+   freezeTableName: true,
+   timestamps: false
+});
+
+const express = require('express')
+const port = process.env.PORT || 8080
+const app = express()
+app.use(express.json());
+app.listen(port, () => console.log('Sample app is listening on port ${port}!'))
+
+app.post('/inventory', async (req, res) => {
+try {
+   const newItem = new Inventory(req.body)
+   await newItem.save()
+   res.json({ inventory: newItem })
+} catch(error) {
+   console.error(error)
+}})
+
+app.get('/inventory/id/:id', async (req, res) => {
+   const id = req.params.id
+   try {
+  const inventory = await Inventory.findAll({
+      attributes: ['id', 'name', 'quantity', 'date', 'duracion'],
+      where: {
+         id: id
+      }})
+      res.json({ inventory })
+   } catch(error) {
+       console.error(error)
+}})
+
+app.get('/inventory/puntuacion/:quantity', async (req, res) => {
+   const quantity = req.params.quantity
+   try {
+  const inventory = await Inventory.findAll({
+      attributes: ['id', 'name', 'quantity', 'date', 'duracion'],
+      where: {
+         quantity: quantity
+      }})
+      res.json({ inventory })
+   } catch(error) {
+       console.error(error)
+}})
+
+app.get('/inventory/fecha/:fecha', async (req, res) => {
+   const fecha = req.params.fecha
+   try {
+  const inventory = await Inventory.findAll({
+      attributes: ['id', 'name', 'quantity', 'date', 'duracion'],
+      where: {
+         fecha: fecha
+      }})
+      res.json({ inventory })
+   } catch(error) {
+       console.error(error)
+}})
+
+app.get('/inventory/duracion/:duracion', async (req, res) => {
+   const duracion = req.params.duracion
+   try {
+  const inventory = await Inventory.findAll({
+      attributes: ['id', 'name', 'quantity', 'date', 'duracion'],
+      where: {
+         duracion: duracion
+      }})
+      res.json({ inventory })
+   } catch(error) {
+       console.error(error)
+}})
+
+app.use(express.static("public"));
+app.use("/static", express.static("public"));
+const fs = require('fs');
+// Importar modelo de datos de inventario
+const ejs = require('ejs')
+const path = require('path')
+const Handlebars = require('handlebars')
+
+app.get('/inventory', async (req, res) => {
+   try {
+    const inventory = await Inventory.findAll({
+         attributes: ['id', 'name', 'quantity', 'date', 'duracion']
+      });
+      //res.sendFile(path.resolve(__dirname, "clasificacion.html", {inventory})
+        const source = fs.readFileSync(path.resolve(__dirname, 'clasificacion.html'), 'utf8')
+        console.log('Source:', source); // Verificar que se está leyendo correctamente el archivo HTML
+        const template = Handlebars.compile(source)
+        console.log('Template:', template); // Verificar que se está compilando correctamente la plantilla
+        const inventoryHtml = inventory.map(item => ({
+            id: item.id,
+            name: item.name,
+            quantity: item.quantity,
+            date: item.date,
+            duracion: item.duracion
+        }));
+        console.log('Inventory HTML:', inventoryHtml); // Verificar que se está generando correctamente la cadena de caracteres HTML
+
+        // Renderizar la plantilla con los datos del inventario
+        const html = template({ inventory: inventoryHtml })
+        console.log('HTML:', html); // Verificar que se está generando correctamente la página HTML
+        //Enviar la respuesta al cliente
+        res.send(html);
+   } catch(error) {
+      console.error(error);
+      res.status(500).json({ message: 'Error en el servidor' });
+   }
+});
+
+//res.json({ inventory });
+
+

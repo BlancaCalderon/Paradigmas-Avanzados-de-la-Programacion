@@ -1,0 +1,14 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="Parte3_BasicaScala:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/Parte3_BasicaScala_jar</output-path>
+    <root id="archive" name="Parte3_BasicaScala.jar">
+      <element id="module-output" name="Parte3_BasicaScala" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/json-20140107.jar" path-in-jar="/" />
+      <element id="library" level="project" name="scala" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/play-json_2.13-2.9.4.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.ivy2/cache/org.scala-lang/scala-library/jars/scala-library-2.13.10.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.ivy2/cache/org.scala-lang/scala-reflect/jars/scala-reflect-2.13.10.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/json4s-jackson_2.13-4.1.0-M3.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

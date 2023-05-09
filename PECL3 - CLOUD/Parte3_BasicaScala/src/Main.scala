@@ -169,10 +169,10 @@ object Main {
       case 0 =>
       {
         //Obtiene la hora de finalización
-        val end = System.currentTimeMillis()
+        val finEjecucion = System.currentTimeMillis()
 
         //Calcula la duracion de la partida en segundos
-        val duracion = (end - inicioEjecucion) / 1000
+        val duracion = (finEjecucion - inicioEjecucion) / 1000
 
         println("Has perdido")
         println("La duracion de la partida en segundos ha sido: " + duracion + " segundos")
@@ -192,7 +192,7 @@ object Main {
         connection.setDoOutput(true)
 
         //Hace objeto JSON con los datos a enviar
-        val datos = new JSONObject()   //.put("id", JSONObject.NULL)
+        val datos = new JSONObject()
           .put("name", nombreUsuario)
           .put("quantity", puntuacion)
           .put("date", fecha)

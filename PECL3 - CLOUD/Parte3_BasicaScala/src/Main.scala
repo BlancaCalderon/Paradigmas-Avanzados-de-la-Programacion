@@ -251,7 +251,7 @@ object Main {
         val vida2: Int = restarVidas(tablero2, vidas, pos_encontrar) //Si tablero2 contiene casillas con el valor -1 significa que desde dicha posicion se han borrado elementos
 
         //Calcula la puntuacion de la jugada actual y se lo suma a la puntuacion de la partida
-        val puntuacion2 = puntuacion + calcularPuntuacion(tablero2, tablero(pos_encontrar))
+        val puntuacion2 = puntuacion + (calcularPuntuacion(tablero2, tablero(pos_encontrar))*dificultad/3)
         println("Puntuacion " + puntuacion2)
 
         //Reemplazamos las posiciones del tablero eliminadas generando nuevos colores

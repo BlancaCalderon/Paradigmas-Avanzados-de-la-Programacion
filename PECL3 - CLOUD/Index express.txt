@@ -48,6 +48,19 @@ app.get('/inventory/id/:id', async (req, res) => {
        console.error(error)
 }})
 
+app.get('/inventory/nombre/:name', async (req, res) => {
+   const name = req.params.name
+   try {
+  const inventory = await Inventory.findAll({
+      attributes: ['id', 'name', 'quantity', 'date', 'duracion'],
+      where: {
+         name: name
+      }})
+      res.json({ inventory })
+   } catch(error) {
+       console.error(error)
+}})
+
 app.get('/inventory/puntuacion/:quantity', async (req, res) => {
    const quantity = req.params.quantity
    try {
@@ -61,13 +74,13 @@ app.get('/inventory/puntuacion/:quantity', async (req, res) => {
        console.error(error)
 }})
 
-app.get('/inventory/fecha/:fecha', async (req, res) => {
-   const fecha = req.params.fecha
+app.get('/inventory/fecha/:date', async (req, res) => {
+   const date = req.params.date
    try {
   const inventory = await Inventory.findAll({
       attributes: ['id', 'name', 'quantity', 'date', 'duracion'],
       where: {
-         fecha: fecha
+         date: date
       }})
       res.json({ inventory })
    } catch(error) {
@@ -125,6 +138,5 @@ app.get('/inventory', async (req, res) => {
    }
 });
 
-//res.json({ inventory });
 
 

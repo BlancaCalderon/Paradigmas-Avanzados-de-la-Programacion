@@ -42,11 +42,33 @@ app.get('/inventory/id/:id', async (req, res) => {
       attributes: ['id', 'name', 'quantity', 'date', 'duracion'],
       where: {
          id: id
-      }})
-      res.json({ inventory })
-   } catch(error) {
-       console.error(error)
-}})
+      }});
+
+      const source = fs.readFileSync(path.resolve(__dirname, 'clasificacion.html'), 'utf8')
+       console.log('Source:', source); // Verificar que se está leyendo correctamente el archivo HTML
+       const template = Handlebars.compile(source)
+       console.log('Template:', template); // Verificar que se está compilando correctamente la plantilla
+       const inventoryHtml = inventory.map(item => ({
+           id: item.id,
+           name: item.name,
+           quantity: item.quantity,
+           date: item.date,
+           duracion: item.duracion
+       }));
+       console.log('Inventory HTML:', inventoryHtml); // Verificar que se está generando correctamente la cadena de caracteres HTML
+
+
+       // Renderizar la plantilla con los datos del inventario
+       const html = template({ inventory: inventoryHtml })
+       console.log('HTML:', html); // Verificar que se está generando correctamente la página HTML
+       //Enviar la respuesta al cliente
+       res.send(html);
+  } catch(error) {
+     console.error(error);
+     res.status(500).json({ message: 'Error en el servidor' });
+  }
+});
+
 
 app.get('/inventory/nombre/:name', async (req, res) => {
    const name = req.params.name
@@ -55,11 +77,31 @@ app.get('/inventory/nombre/:name', async (req, res) => {
       attributes: ['id', 'name', 'quantity', 'date', 'duracion'],
       where: {
          name: name
-      }})
-      res.json({ inventory })
-   } catch(error) {
-       console.error(error)
-}})
+      }});
+      const source = fs.readFileSync(path.resolve(__dirname, 'clasificacion.html'), 'utf8')
+       console.log('Source:', source); // Verificar que se está leyendo correctamente el archivo HTML
+       const template = Handlebars.compile(source)
+       console.log('Template:', template); // Verificar que se está compilando correctamente la plantilla
+       const inventoryHtml = inventory.map(item => ({
+           id: item.id,
+           name: item.name,
+           quantity: item.quantity,
+           date: item.date,
+           duracion: item.duracion
+       }));
+       console.log('Inventory HTML:', inventoryHtml); // Verificar que se está generando correctamente la cadena de caracteres HTML
+
+
+       // Renderizar la plantilla con los datos del inventario
+       const html = template({ inventory: inventoryHtml })
+       console.log('HTML:', html); // Verificar que se está generando correctamente la página HTML
+       //Enviar la respuesta al cliente
+       res.send(html);
+  } catch(error) {
+     console.error(error);
+     res.status(500).json({ message: 'Error en el servidor' });
+  }
+});
 
 app.get('/inventory/puntuacion/:quantity', async (req, res) => {
    const quantity = req.params.quantity
@@ -68,11 +110,31 @@ app.get('/inventory/puntuacion/:quantity', async (req, res) => {
       attributes: ['id', 'name', 'quantity', 'date', 'duracion'],
       where: {
          quantity: quantity
-      }})
-      res.json({ inventory })
-   } catch(error) {
-       console.error(error)
-}})
+      }});
+      const source = fs.readFileSync(path.resolve(__dirname, 'clasificacion.html'), 'utf8')
+       console.log('Source:', source); // Verificar que se está leyendo correctamente el archivo HTML
+       const template = Handlebars.compile(source)
+       console.log('Template:', template); // Verificar que se está compilando correctamente la plantilla
+       const inventoryHtml = inventory.map(item => ({
+           id: item.id,
+           name: item.name,
+           quantity: item.quantity,
+           date: item.date,
+           duracion: item.duracion
+       }));
+       console.log('Inventory HTML:', inventoryHtml); // Verificar que se está generando correctamente la cadena de caracteres HTML
+
+
+       // Renderizar la plantilla con los datos del inventario
+       const html = template({ inventory: inventoryHtml })
+       console.log('HTML:', html); // Verificar que se está generando correctamente la página HTML
+       //Enviar la respuesta al cliente
+       res.send(html);
+  } catch(error) {
+     console.error(error);
+     res.status(500).json({ message: 'Error en el servidor' });
+  }
+});
 
 app.get('/inventory/fecha/:date', async (req, res) => {
    const date = req.params.date
@@ -81,11 +143,31 @@ app.get('/inventory/fecha/:date', async (req, res) => {
       attributes: ['id', 'name', 'quantity', 'date', 'duracion'],
       where: {
          date: date
-      }})
-      res.json({ inventory })
-   } catch(error) {
-       console.error(error)
-}})
+      }});
+      const source = fs.readFileSync(path.resolve(__dirname, 'clasificacion.html'), 'utf8')
+       console.log('Source:', source); // Verificar que se está leyendo correctamente el archivo HTML
+       const template = Handlebars.compile(source)
+       console.log('Template:', template); // Verificar que se está compilando correctamente la plantilla
+       const inventoryHtml = inventory.map(item => ({
+           id: item.id,
+           name: item.name,
+           quantity: item.quantity,
+           date: item.date,
+           duracion: item.duracion
+       }));
+       console.log('Inventory HTML:', inventoryHtml); // Verificar que se está generando correctamente la cadena de caracteres HTML
+
+
+       // Renderizar la plantilla con los datos del inventario
+       const html = template({ inventory: inventoryHtml })
+       console.log('HTML:', html); // Verificar que se está generando correctamente la página HTML
+       //Enviar la respuesta al cliente
+       res.send(html);
+  } catch(error) {
+     console.error(error);
+     res.status(500).json({ message: 'Error en el servidor' });
+  }
+});
 
 app.get('/inventory/duracion/:duracion', async (req, res) => {
    const duracion = req.params.duracion
@@ -94,11 +176,31 @@ app.get('/inventory/duracion/:duracion', async (req, res) => {
       attributes: ['id', 'name', 'quantity', 'date', 'duracion'],
       where: {
          duracion: duracion
-      }})
-      res.json({ inventory })
-   } catch(error) {
-       console.error(error)
-}})
+      }});
+      const source = fs.readFileSync(path.resolve(__dirname, 'clasificacion.html'), 'utf8')
+       console.log('Source:', source); // Verificar que se está leyendo correctamente el archivo HTML
+       const template = Handlebars.compile(source)
+       console.log('Template:', template); // Verificar que se está compilando correctamente la plantilla
+       const inventoryHtml = inventory.map(item => ({
+           id: item.id,
+           name: item.name,
+           quantity: item.quantity,
+           date: item.date,
+           duracion: item.duracion
+       }));
+       console.log('Inventory HTML:', inventoryHtml); // Verificar que se está generando correctamente la cadena de caracteres HTML
+
+
+       // Renderizar la plantilla con los datos del inventario
+       const html = template({ inventory: inventoryHtml })
+       console.log('HTML:', html); // Verificar que se está generando correctamente la página HTML
+       //Enviar la respuesta al cliente
+       res.send(html);
+  } catch(error) {
+     console.error(error);
+     res.status(500).json({ message: 'Error en el servidor' });
+  }
+});
 
 app.use(express.static("public"));
 app.use("/static", express.static("public"));
@@ -138,5 +240,6 @@ app.get('/inventory', async (req, res) => {
    }
 });
 
+//res.json({ inventory });
 
 

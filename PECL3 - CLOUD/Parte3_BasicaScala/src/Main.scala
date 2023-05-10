@@ -13,27 +13,31 @@ object Main {
   def main(args: Array[String]): Unit =
   {
     val vidas: Int = 5
+
+    //Se coge el tiempo en milisegundos cuando el jugador inicia la ejecución para calcular la duración de la partida
     val inicioEjecucion = System.currentTimeMillis()
 
     if (obtenerLongitud(args) > 0) { //Si se ha llamado al programa por comandos
       val modoJuego: Array[Char] = args(0).toCharArray
+      //Se envía el tiempo de inicio de ejecucion
       programaConsola(obtenerLongitud(args), modoJuego(0), args(1).toInt, args(2).toInt, args(3).toInt, vidas, inicioEjecucion)
     }
     else //Si no se ha llamado al programa por comandos
     {
+      //Se envía el tiempo de inicio de ejecucion
       programaTeclado(vidas, inicioEjecucion)
     }
   }
 
   /**
    * Recibe los datos introducidos por el usuario por consola
-   *
    * @param args
    * @param modoJuego
    * @param dificultad
    * @param numFilas
    * @param numCol
    * @param vidas
+   * @param inicioEjecucion
    */
   def programaConsola(args: Int, modoJuego: Int, dificultad: Int, numFilas: Int, numCol: Int, vidas: Int, inicioEjecucion : Long): Unit = {
     if (args == 4) {
@@ -49,6 +53,7 @@ object Main {
   /**
    * Los datos de las variables son introducidos por el usuario a través del teclado
    * @param vidas
+   * @param inicioEjecucion
    */
   def programaTeclado(vidas: Int, inicioEjecucion : Long): Unit = {
     println("Introduce el numero de Filas del tablero: ")
@@ -71,6 +76,15 @@ object Main {
     jugar(numFilas, numCol, limiteNum, tablero, modoJuego, vidas, 0, inicioEjecucion)
   }
 
+  /**
+   * Se establece si se va a jugar de forma manual o automatica
+   * @param modoJuego
+   * @param numFilas
+   * @param numCol
+   * @param dificultad
+   * @param tablero
+   * @return
+   */
   def seleccionModoJuego(modoJuego: Char, numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int]): Int = {
     //Modo automatico
     if (modoJuego == 'a' || modoJuego == 'A')
@@ -154,12 +168,15 @@ object Main {
   /**
    * La recursividad del juego que se lleva a cabo hasta que se acaban las vidas del jugador
    * Esta función se encargará de llamar a todos los métodos necesarios para eliminar la casilla introducida por el usuario
+   * Se realiza el Post a Cloud cada vez que finaliza una partida
    * @param numFilas
    * @param numCol
    * @param dificultad
    * @param tablero
    * @param modoJuego
    * @param vidas
+   * @param puntuacion
+   * @param inicioEjecucion
    */
   def jugar(numFilas: Int, numCol: Int, dificultad: Int, tablero: List[Int], modoJuego: Char, vidas: Int, puntuacion: Int, inicioEjecucion : Long): Unit= {
     val size: Int = numCol * numFilas
@@ -168,7 +185,7 @@ object Main {
     {
       case 0 =>
       {
-        //Obtiene la hora de finalización
+        //Obtiene la hora de finalización de la partida
         val finEjecucion = System.currentTimeMillis()
 
         //Calcula la duracion de la partida en segundos
@@ -185,13 +202,13 @@ object Main {
         val fecha = LocalDate.now()
 
         //Codigo que manda datos a la página web (nombre, puntuación, fecha y duración)
-        val url = new URL("https://express609921618.azurewebsites.net/inventory")
-        val connection = url.openConnection().asInstanceOf[HttpURLConnection]
-
+        val url = new URL("https://express609921618.azurewebsites.net/inventory") //Link al express
+        val connection = url.openConnection().asInstanceOf[HttpURLConnection]   //Abrimos una conexion http con el url al express
+        //Establecemos que vamos a realizar un POST para introducir los datos de la partida
         connection.setRequestMethod("POST")
         connection.setDoOutput(true)
 
-        //Hace objeto JSON con los datos a enviar
+        //Hace objeto JSON con los datos a enviar (el id se incrementa de forma automatica en la BBDD)
         val datos = new JSONObject()
           .put("name", nombreUsuario)
           .put("quantity", puntuacion)
@@ -203,17 +220,18 @@ object Main {
         connection.setRequestProperty("Content-Type", "application/json")
         connection.setRequestProperty("Content-Length", bodyBytes.length.toString)
 
-        val wr = new OutputStreamWriter(connection.getOutputStream())
-        wr.write(datos)
+        val wr = new OutputStreamWriter(connection.getOutputStream())   //Inicio de conexión para poder escribir los datos
+        wr.write(datos)   //Escribimos el JSON con los datos (usuario, puntuacion, fecha, duracion)
         wr.flush()
-        println(connection.getResponseCode(), connection.getResponseMessage)
-        wr.close()
+        println(connection.getResponseCode(), connection.getResponseMessage)  //Obtenemos el codigo de respuesta, 200 en caso de que se haya realizado de forma correcta
+        wr.close()        //Cerramos la operacion de escritura
 
         println("Quieres jugar de nuevo? y/n")
         val otraVez = scala.io.StdIn.readChar()
 
         if(otraVez == 'y')
         {
+          //Si el jugador quiere jugar una partida de nuevo reestablecemos  inicio de la duracion de la partida
           programaTeclado(5, System.currentTimeMillis())
         }
         else  println("Adios " + nombreUsuario + "!")
@@ -273,13 +291,21 @@ object Main {
     }
   }
 
+  /**
+   * Se calcula la puntuación del jugador en función de la casilla seleccionada
+   * Se comprueba si se trata de un bloque especial (diferenciando entre bomba, TNT y RC)
+   * En caso de que no sea un bloque especial se suma 1
+   * @param tablero
+   * @param valorSeleccionado
+   * @return
+   */
   def calcularPuntuacion(tablero: List[Int], valorSeleccionado: Int): Int= {
     val posBorradas = contarPosicionesBorradas(tablero) - 1
     val puntuacion = posBorradas + (posBorradas / 10) //Por cada 10 bloques borrados se suma uno
 
-    if (valorSeleccionado == 66)  puntuacion + 5
-    else if (valorSeleccionado == 84) puntuacion + 10
-    else if(valorSeleccionado > 7 && valorSeleccionado < 14) puntuacion + 15
+    if (valorSeleccionado == 66)  puntuacion + 5          //Bomba, incrementamos la puntuacion en 5
+    else if (valorSeleccionado == 84) puntuacion + 10     //TNT, incrementamos la puntuacion en 10
+    else if(valorSeleccionado > 7 && valorSeleccionado < 14) puntuacion + 15  //RC, incrementamos la puntuacion en 15
     else puntuacion + 1     //Si no es bloque especial se cuenta asi misma
   }
 
